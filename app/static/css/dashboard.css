@@ -8471,55 +8471,78 @@ textarea:focus-visible {
 
 .name-search-flat-wrap {
   margin-top: 10px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 12px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  padding-top: 10px;
   overflow: auto;
   max-height: 560px;
 }
 
-.name-search-flat-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 740px;
+.name-search-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
 }
 
-.name-search-flat-table th,
-.name-search-flat-table td {
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  padding: 8px 10px;
-  text-align: left;
-  vertical-align: top;
+.name-search-field-item {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+  padding: 10px;
 }
 
-.name-search-flat-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: rgba(15,18,30,.96);
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
+.name-search-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.name-search-flat-path,
-.name-search-flat-value {
-  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  font-size: 12px;
+.name-search-field-key {
   color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  word-break: break-word;
+}
+
+.name-search-field-type {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.name-search-field-value {
+  margin-top: 10px;
+  color: var(--text);
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.name-search-flat-type {
+.name-search-field-path {
+  margin-top: 8px;
   color: var(--muted);
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
+  line-height: 1.35;
+  letter-spacing: .02em;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.name-search-flat-table tbody tr:last-child td {
-  border-bottom: none;
+.name-search-field-item[data-kind="object"] .name-search-field-value,
+.name-search-field-item[data-kind="array"] .name-search-field-value {
+  color: #c4d3e7;
+  font-size: 13px;
 }
 
 .name-search-json-details > summary {

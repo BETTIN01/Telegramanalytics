@@ -964,10 +964,10 @@ const UI_COPY = {
       tableTitle: 'Registros retornados',
       structuredTitle: 'Leitura estruturada da resposta',
       structuredOverviewTitle: 'Resumo da consulta',
-      structuredRootSummary: 'JSON bruto completo estruturado',
-      structuredRootKey: 'ROOT',
-      structuredFlatTitle: 'Tabela completa de campos (caminho -> valor)',
-      structuredFlatCount: function(total) { return `${total} linha(s) estruturada(s)`; },
+      structuredRootSummary: 'JSON completo organizado em blocos',
+      structuredRootKey: 'RESPOSTA',
+      structuredFlatTitle: 'Blocos completos por campo',
+      structuredFlatCount: function(total) { return `${total} bloco(s) estruturado(s)`; },
       structuredFlatHeaders: {
         path: 'Caminho',
         type: 'Tipo',
@@ -1536,10 +1536,10 @@ const UI_COPY = {
       tableTitle: 'Returned records',
       structuredTitle: 'Structured response view',
       structuredOverviewTitle: 'Query summary',
-      structuredRootSummary: 'Fully structured raw JSON',
-      structuredRootKey: 'ROOT',
-      structuredFlatTitle: 'Complete field table (path -> value)',
-      structuredFlatCount: function(total) { return `${total} structured row(s)`; },
+      structuredRootSummary: 'Full JSON organized in blocks',
+      structuredRootKey: 'RESPONSE',
+      structuredFlatTitle: 'Complete field blocks',
+      structuredFlatCount: function(total) { return `${total} structured block(s)`; },
       structuredFlatHeaders: {
         path: 'Path',
         type: 'Type',
@@ -3808,11 +3808,9 @@ function getNameSearchNodeKind(value) {
 }
 
 function stringifyNameSearchLeafValue(value) {
-  if (typeof value === 'undefined') return 'undefined';
-  try {
-    const serialized = JSON.stringify(value);
-    if (typeof serialized === 'string') return serialized;
-  } catch (e) {}
+  if (value === null || typeof value === 'undefined') return '-';
+  if (typeof value === 'string') return normalizeNameSearchValue(value);
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
   return String(value);
 }
 
@@ -3840,17 +3838,97 @@ function createNameSearchStructuredMetaLine(label, value) {
 }
 
 function getNameSearchNodePath(parentPath, key) {
-  const keyText = String(key);
+  const keyText = String(key || '').replace(/"/g, '');
   if (!parentPath) return keyText;
   if (keyText.startsWith('[')) return `${parentPath}${keyText}`;
   return `${parentPath}.${keyText}`;
 }
 
-function getNameSearchNodeValueSummary(value, nodeTypes) {
+function getNameSearchLastPathToken(path) {
+  const textPath = String(path || '').replace(/"/g, '');
+  if (!textPath) return '';
+  const withoutIndex = textPath.replace(/\[\d+\]$/g, '');
+  const parts = withoutIndex.split('.').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : textPath;
+}
+
+function formatNameSearchDigits(value) {
+  return String(value || '').replace(/\D+/g, '');
+}
+
+function formatNameSearchCpf(value) {
+  const digits = formatNameSearchDigits(value);
+  if (digits.length !== 11) return String(value);
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function formatNameSearchCnpj(value) {
+  const digits = formatNameSearchDigits(value);
+  if (digits.length !== 14) return String(value);
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+function formatNameSearchRg(value) {
+  const cleaned = String(value || '').replace(/[^0-9a-z]/gi, '');
+  if (cleaned.length < 2) return String(value);
+  return `${cleaned.slice(0, -1)}-${cleaned.slice(-1)}`;
+}
+
+function formatNameSearchCep(value) {
+  const digits = formatNameSearchDigits(value);
+  if (digits.length !== 8) return String(value);
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+function formatNameSearchPhoneBR(value) {
+  const digits = formatNameSearchDigits(value);
+  if (digits.length === 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return String(value);
+}
+
+function formatNameSearchTituloEleitor(value) {
+  const digits = formatNameSearchDigits(value);
+  if (digits.length !== 12) return String(value);
+  return `${digits.slice(0, 4)} ${digits.slice(4, 8)} ${digits.slice(8)}`;
+}
+
+function formatNameSearchDateTime(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!match) return raw;
+  const day = match[3];
+  const month = match[2];
+  const year = match[1];
+  const hh = match[4];
+  const mm = match[5];
+  const ss = match[6];
+  if (hh && mm && ss) return `${day}/${month}/${year} ${hh}:${mm}:${ss}`;
+  if (hh && mm) return `${day}/${month}/${year} ${hh}:${mm}`;
+  return `${day}/${month}/${year}`;
+}
+
+function formatNameSearchSemanticValue(path, value) {
+  const base = stringifyNameSearchLeafValue(value);
+  if (base === '-') return base;
+  const token = getNameSearchLastPathToken(path).toUpperCase();
+
+  if (token.includes('CPF')) return formatNameSearchCpf(base);
+  if (token.includes('CNPJ')) return formatNameSearchCnpj(base);
+  if (token === 'RG' || token.endsWith('_RG')) return formatNameSearchRg(base);
+  if (token.includes('TITULO')) return formatNameSearchTituloEleitor(base);
+  if (token.includes('CEP')) return formatNameSearchCep(base);
+  if (token.includes('TELEFONE') || token.includes('CELULAR') || token === 'FONE') return formatNameSearchPhoneBR(base);
+  if (token.includes('DT_') || token.includes('DATA') || token.includes('NASC')) return formatNameSearchDateTime(base);
+
+  return base;
+}
+
+function getNameSearchNodeValueSummary(value, nodeTypes, path) {
   const kind = getNameSearchNodeKind(value);
   if (kind === 'object') return Object.keys(value).length ? getNameSearchNodeMeta(value, nodeTypes) : '{}';
   if (kind === 'array') return value.length ? getNameSearchNodeMeta(value, nodeTypes) : '[]';
-  return stringifyNameSearchLeafValue(value);
+  return formatNameSearchSemanticValue(path, value);
 }
 
 function collectNameSearchStructuredRows(key, value, parentPath, text, rows) {
@@ -3860,8 +3938,10 @@ function collectNameSearchStructuredRows(key, value, parentPath, text, rows) {
 
   rows.push({
     path: path,
+    label: getNameSearchLastPathToken(path) || String(key || '').replace(/"/g, ''),
+    kind: kind,
     type: nodeTypes[kind] || kind,
-    value: getNameSearchNodeValueSummary(value, nodeTypes),
+    value: getNameSearchNodeValueSummary(value, nodeTypes, path),
   });
 
   if (kind === 'array') {
@@ -3878,8 +3958,24 @@ function collectNameSearchStructuredRows(key, value, parentPath, text, rows) {
   }
 }
 
-function buildNameSearchStructuredTableCard(rows, text) {
-  const headers = text.structuredFlatHeaders || {};
+function collectNameSearchStructuredRowsFromRoot(value, text, rows) {
+  const rootKind = getNameSearchNodeKind(value);
+  if (rootKind === 'object') {
+    Object.keys(value).forEach(function(key) {
+      collectNameSearchStructuredRows(key, value[key], '', text, rows);
+    });
+    return;
+  }
+  if (rootKind === 'array') {
+    value.forEach(function(item, idx) {
+      collectNameSearchStructuredRows(`[${idx}]`, item, '', text, rows);
+    });
+    return;
+  }
+  collectNameSearchStructuredRows('valor', value, '', text, rows);
+}
+
+function buildNameSearchStructuredBlocksCard(rows, text) {
   const countText = typeof text.structuredFlatCount === 'function'
     ? text.structuredFlatCount(rows.length)
     : `${rows.length}`;
@@ -3889,7 +3985,7 @@ function buildNameSearchStructuredTableCard(rows, text) {
 
   const title = document.createElement('div');
   title.className = 'name-search-structured-title';
-  title.textContent = text.structuredFlatTitle || 'Tabela completa de campos (caminho -> valor)';
+  title.textContent = text.structuredFlatTitle || 'Blocos completos por campo';
   card.appendChild(title);
 
   const countLine = document.createElement('div');
@@ -3900,51 +3996,54 @@ function buildNameSearchStructuredTableCard(rows, text) {
   const tableWrap = document.createElement('div');
   tableWrap.className = 'name-search-flat-wrap';
 
-  const table = document.createElement('table');
-  table.className = 'name-search-flat-table';
+  const grid = document.createElement('div');
+  grid.className = 'name-search-field-grid';
 
-  const thead = document.createElement('thead');
-  thead.innerHTML = `
-    <tr>
-      <th>${escHtml(headers.path || 'Path')}</th>
-      <th>${escHtml(headers.type || 'Type')}</th>
-      <th>${escHtml(headers.value || 'Value')}</th>
-    </tr>
-  `;
-  table.appendChild(thead);
-
-  const tbody = document.createElement('tbody');
   rows.forEach(function(row) {
-    const tr = document.createElement('tr');
+    const item = document.createElement('article');
+    item.className = 'name-search-field-item';
+    item.setAttribute('data-kind', row.kind || '');
 
-    const pathTd = document.createElement('td');
-    pathTd.className = 'name-search-flat-path';
-    pathTd.textContent = row.path;
-    tr.appendChild(pathTd);
+    const head = document.createElement('div');
+    head.className = 'name-search-field-head';
 
-    const typeTd = document.createElement('td');
-    typeTd.className = 'name-search-flat-type';
-    typeTd.textContent = row.type;
-    tr.appendChild(typeTd);
+    const keyNode = document.createElement('div');
+    keyNode.className = 'name-search-field-key';
+    keyNode.textContent = row.label || row.path || '-';
+    head.appendChild(keyNode);
 
-    const valueTd = document.createElement('td');
-    valueTd.className = 'name-search-flat-value';
-    valueTd.textContent = row.value;
-    tr.appendChild(valueTd);
+    const typeNode = document.createElement('span');
+    typeNode.className = 'name-search-field-type';
+    typeNode.textContent = row.type;
+    head.appendChild(typeNode);
 
-    tbody.appendChild(tr);
+    item.appendChild(head);
+
+    const valueNode = document.createElement('div');
+    valueNode.className = 'name-search-field-value';
+    valueNode.textContent = row.value;
+    item.appendChild(valueNode);
+
+    if (row.path) {
+      const pathNode = document.createElement('div');
+      pathNode.className = 'name-search-field-path';
+      pathNode.textContent = row.path;
+      item.appendChild(pathNode);
+    }
+
+    grid.appendChild(item);
   });
-  table.appendChild(tbody);
 
-  tableWrap.appendChild(table);
+  tableWrap.appendChild(grid);
   card.appendChild(tableWrap);
   return card;
 }
 
-function buildNameSearchTreeNode(key, value, depth, text) {
+function buildNameSearchTreeNode(key, value, depth, text, parentPath) {
   const nodeTypes = text.nodeTypes || {};
   const kind = getNameSearchNodeKind(value);
   const label = String(key);
+  const currentPath = getNameSearchNodePath(parentPath || '', key);
 
   if (kind === 'object' || kind === 'array') {
     const node = document.createElement('details');
@@ -3980,7 +4079,7 @@ function buildNameSearchTreeNode(key, value, depth, text) {
       children.appendChild(empty);
     } else {
       entries.forEach(function(entry) {
-        children.appendChild(buildNameSearchTreeNode(entry[0], entry[1], depth + 1, text));
+        children.appendChild(buildNameSearchTreeNode(entry[0], entry[1], depth + 1, text, currentPath));
       });
     }
 
@@ -4003,7 +4102,7 @@ function buildNameSearchTreeNode(key, value, depth, text) {
 
   const leafValue = document.createElement('div');
   leafValue.className = 'name-search-tree-value';
-  leafValue.textContent = stringifyNameSearchLeafValue(value);
+  leafValue.textContent = getNameSearchNodeValueSummary(value, nodeTypes, currentPath);
   leaf.appendChild(leafValue);
 
   return leaf;
@@ -4050,15 +4149,15 @@ function renderNameSearchStructuredPayload(state) {
   treeCard.appendChild(treeTitle);
 
   const rootKey = text.structuredRootKey || 'ROOT';
-  const treeRoot = buildNameSearchTreeNode(rootKey, current.raw, 0, text);
+  const treeRoot = buildNameSearchTreeNode(rootKey, current.raw, 0, text, '');
   treeRoot.classList.add('name-search-tree-root');
   treeCard.appendChild(treeRoot);
 
   container.appendChild(treeCard);
 
   const flatRows = [];
-  collectNameSearchStructuredRows(rootKey, current.raw, '', text, flatRows);
-  container.appendChild(buildNameSearchStructuredTableCard(flatRows, text));
+  collectNameSearchStructuredRowsFromRoot(current.raw, text, flatRows);
+  container.appendChild(buildNameSearchStructuredBlocksCard(flatRows, text));
 }
 
 function renderNameSearchRawPayload(state) {

@@ -963,9 +963,29 @@ const UI_COPY = {
       },
       tableTitle: 'Registros retornados',
       structuredTitle: 'Leitura estruturada da resposta',
+      structuredOverviewTitle: 'Resumo da consulta',
+      structuredRootSummary: 'JSON bruto completo estruturado',
+      structuredRootKey: 'ROOT',
       rawTitle: 'JSON completo retornado pela API',
       rawSummary: 'Abrir JSON bruto completo',
       recordRawSummary: 'Ver todos os campos deste registro',
+      labels: {
+        query: 'Consulta',
+        type: 'Tipo',
+        records: 'Registros em RESULTADOS',
+        endpoint: 'Endpoint',
+        source: 'Fonte'
+      },
+      nodeTypes: {
+        object: 'objeto',
+        array: 'lista',
+        string: 'texto',
+        number: 'numero',
+        boolean: 'booleano',
+        nullValue: 'nulo',
+        undefinedValue: 'indefinido',
+        empty: 'vazio'
+      },
       headers: ['#', 'Tipo', 'Dados completos'],
       fields: {
         name: 'Nome',
@@ -1508,9 +1528,29 @@ const UI_COPY = {
       },
       tableTitle: 'Returned records',
       structuredTitle: 'Structured response view',
+      structuredOverviewTitle: 'Query summary',
+      structuredRootSummary: 'Fully structured raw JSON',
+      structuredRootKey: 'ROOT',
       rawTitle: 'Full raw JSON response',
       rawSummary: 'Open full raw JSON',
       recordRawSummary: 'Show every field from this record',
+      labels: {
+        query: 'Query',
+        type: 'Type',
+        records: 'Records in RESULTADOS',
+        endpoint: 'Endpoint',
+        source: 'Source'
+      },
+      nodeTypes: {
+        object: 'object',
+        array: 'list',
+        string: 'text',
+        number: 'number',
+        boolean: 'boolean',
+        nullValue: 'null',
+        undefinedValue: 'undefined',
+        empty: 'empty'
+      },
       headers: ['#', 'Type', 'Full data'],
       fields: {
         name: 'Name',
@@ -3742,8 +3782,120 @@ function renderNameSearchRows(state) {
   });
 }
 
+function getNameSearchNodeKind(value) {
+  if (value === null) return 'nullValue';
+  if (typeof value === 'undefined') return 'undefinedValue';
+  if (Array.isArray(value)) return 'array';
+  if (typeof value === 'object') return 'object';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'string';
+}
+
+function stringifyNameSearchLeafValue(value) {
+  if (typeof value === 'undefined') return 'undefined';
+  try {
+    const serialized = JSON.stringify(value);
+    if (typeof serialized === 'string') return serialized;
+  } catch (e) {}
+  return String(value);
+}
+
+function getNameSearchNodeMeta(value, nodeTypes) {
+  const kind = getNameSearchNodeKind(value);
+  if (kind === 'array') return `${nodeTypes.array || 'list'} (${value.length})`;
+  if (kind === 'object') return `${nodeTypes.object || 'object'} (${Object.keys(value).length})`;
+  return nodeTypes[kind] || kind;
+}
+
+function createNameSearchStructuredMetaLine(label, value) {
+  const line = document.createElement('div');
+  line.className = 'name-search-structured-meta';
+
+  const labelNode = document.createElement('span');
+  labelNode.className = 'name-search-structured-meta-label';
+  labelNode.textContent = `${label}: `;
+  line.appendChild(labelNode);
+
+  const valueNode = document.createElement('span');
+  valueNode.textContent = normalizeNameSearchValue(value);
+  line.appendChild(valueNode);
+
+  return line;
+}
+
+function buildNameSearchTreeNode(key, value, depth, text) {
+  const nodeTypes = text.nodeTypes || {};
+  const kind = getNameSearchNodeKind(value);
+  const label = String(key);
+
+  if (kind === 'object' || kind === 'array') {
+    const node = document.createElement('details');
+    node.className = 'name-search-tree-node';
+    if (depth <= 1) node.open = true;
+
+    const summary = document.createElement('summary');
+    summary.className = 'name-search-tree-summary';
+
+    const keyNode = document.createElement('span');
+    keyNode.className = 'name-search-tree-key';
+    keyNode.textContent = label;
+    summary.appendChild(keyNode);
+
+    const metaNode = document.createElement('span');
+    metaNode.className = 'name-search-tree-meta';
+    metaNode.textContent = getNameSearchNodeMeta(value, nodeTypes);
+    summary.appendChild(metaNode);
+
+    node.appendChild(summary);
+
+    const children = document.createElement('div');
+    children.className = 'name-search-tree-children';
+
+    const entries = kind === 'array'
+      ? value.map(function(item, idx) { return [`[${idx}]`, item]; })
+      : Object.keys(value).map(function(childKey) { return [childKey, value[childKey]]; });
+
+    if (!entries.length) {
+      const empty = document.createElement('div');
+      empty.className = 'name-search-tree-empty';
+      empty.textContent = nodeTypes.empty || 'empty';
+      children.appendChild(empty);
+    } else {
+      entries.forEach(function(entry) {
+        children.appendChild(buildNameSearchTreeNode(entry[0], entry[1], depth + 1, text));
+      });
+    }
+
+    node.appendChild(children);
+    return node;
+  }
+
+  const leaf = document.createElement('div');
+  leaf.className = 'name-search-tree-leaf';
+
+  const leafKey = document.createElement('span');
+  leafKey.className = 'name-search-tree-key';
+  leafKey.textContent = label;
+  leaf.appendChild(leafKey);
+
+  const leafMeta = document.createElement('span');
+  leafMeta.className = 'name-search-tree-meta';
+  leafMeta.textContent = nodeTypes[kind] || kind;
+  leaf.appendChild(leafMeta);
+
+  const leafValue = document.createElement('div');
+  leafValue.className = 'name-search-tree-value';
+  leafValue.textContent = stringifyNameSearchLeafValue(value);
+  leaf.appendChild(leafValue);
+
+  return leaf;
+}
+
 function renderNameSearchStructuredPayload(state) {
   const text = getUiText().nameSearch;
+  const labels = text.labels || {};
   const current = state || nameSearchState;
   const container = el('name-search-structured');
   if (!container) return;
@@ -3755,46 +3907,38 @@ function renderNameSearchStructuredPayload(state) {
   }
 
   const list = getNameSearchRows(current.raw, current.rows);
-  container.className = 'name-search-structured-grid';
+  container.className = 'name-search-structured-layout';
   container.innerHTML = '';
 
   const summaryCard = document.createElement('div');
   summaryCard.className = 'name-search-structured-card';
-  summaryCard.innerHTML = `
-    <div class="name-search-structured-title">${escHtml(text.structuredTitle || 'Leitura estruturada da resposta')}</div>
-    <div class="name-search-structured-meta">${escHtml(`Consulta: ${normalizeNameSearchValue(current.query)}`)}</div>
-    <div class="name-search-structured-meta">${escHtml(`Tipo: ${getNameSearchTypeLabel(current.searchType)}`)}</div>
-    <div class="name-search-structured-meta">${escHtml(`Registros em RESULTADOS: ${String(list.length)}`)}</div>
-    <div class="name-search-structured-meta">${escHtml(`Endpoint: ${normalizeNameSearchValue(current.endpoint)}`)}</div>
-    <div class="name-search-structured-meta">${escHtml(`Fonte: ${normalizeNameSearchValue(current.source)}`)}</div>
-  `;
+
+  const summaryTitle = document.createElement('div');
+  summaryTitle.className = 'name-search-structured-title';
+  summaryTitle.textContent = text.structuredOverviewTitle || 'Resumo da consulta';
+  summaryCard.appendChild(summaryTitle);
+
+  summaryCard.appendChild(createNameSearchStructuredMetaLine(labels.query || 'Consulta', current.query));
+  summaryCard.appendChild(createNameSearchStructuredMetaLine(labels.type || 'Tipo', getNameSearchTypeLabel(current.searchType)));
+  summaryCard.appendChild(createNameSearchStructuredMetaLine(labels.records || 'Registros em RESULTADOS', String(list.length)));
+  summaryCard.appendChild(createNameSearchStructuredMetaLine(labels.endpoint || 'Endpoint', current.endpoint));
+  summaryCard.appendChild(createNameSearchStructuredMetaLine(labels.source || 'Fonte', current.source));
   container.appendChild(summaryCard);
 
-  if (current.raw && typeof current.raw === 'object' && !Array.isArray(current.raw)) {
-    const keysCard = document.createElement('div');
-    keysCard.className = 'name-search-structured-card';
-    const keys = Object.keys(current.raw);
-    keysCard.innerHTML = `
-      <div class="name-search-structured-title">Chaves no retorno</div>
-      <div class="name-search-structured-meta">${escHtml(keys.length ? keys.join(', ') : '-')}</div>
-    `;
-    container.appendChild(keysCard);
-  }
+  const treeCard = document.createElement('div');
+  treeCard.className = 'name-search-structured-card name-search-tree-card';
 
-  if (list.length) {
-    const sampleCard = document.createElement('div');
-    sampleCard.className = 'name-search-structured-card';
-    const sample = list[0];
-    const dados = sample && sample.DADOS && typeof sample.DADOS === 'object' ? sample.DADOS : {};
-    sampleCard.innerHTML = `
-      <div class="name-search-structured-title">Primeiro registro (leitura rapida)</div>
-      <div class="name-search-structured-meta">${escHtml(`Nome: ${normalizeNameSearchValue(dados.NOME || dados.nome || '-')}`)}</div>
-      <div class="name-search-structured-meta">${escHtml(`CPF: ${normalizeNameSearchValue(dados.CPF || dados.cpf || '-')}`)}</div>
-      <div class="name-search-structured-meta">${escHtml(`Nascimento: ${normalizeNameSearchValue(dados.NASC || '-')}`)}</div>
-      <div class="name-search-structured-meta">${escHtml(`Sexo: ${normalizeNameSearchValue(dados.SEXO || '-')}`)}</div>
-    `;
-    container.appendChild(sampleCard);
-  }
+  const treeTitle = document.createElement('div');
+  treeTitle.className = 'name-search-structured-title';
+  treeTitle.textContent = text.structuredRootSummary || 'JSON bruto completo estruturado';
+  treeCard.appendChild(treeTitle);
+
+  const rootKey = text.structuredRootKey || 'ROOT';
+  const treeRoot = buildNameSearchTreeNode(rootKey, current.raw, 0, text);
+  treeRoot.classList.add('name-search-tree-root');
+  treeCard.appendChild(treeRoot);
+
+  container.appendChild(treeCard);
 }
 
 function renderNameSearchRawPayload(state) {

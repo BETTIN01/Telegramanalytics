@@ -8354,11 +8354,15 @@ textarea:focus-visible {
   color: var(--muted);
 }
 
-.name-search-structured-grid {
+.name-search-structured-grid,
+.name-search-structured-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
   padding: 14px 16px 18px;
+}
+
+.name-search-structured-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .name-search-structured-card {
@@ -8379,6 +8383,90 @@ textarea:focus-visible {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.name-search-structured-meta-label {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.name-search-tree-card {
+  overflow: hidden;
+}
+
+.name-search-tree-root {
+  margin: 0;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.015);
+}
+
+.name-search-tree-node,
+.name-search-tree-leaf {
+  margin: 0;
+}
+
+.name-search-tree-summary,
+.name-search-tree-leaf {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.name-search-tree-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.name-search-tree-summary::-webkit-details-marker {
+  display: none;
+}
+
+.name-search-tree-children {
+  border-left: 1px solid rgba(255,255,255,.08);
+  margin-left: 14px;
+}
+
+.name-search-tree-key {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  word-break: break-word;
+}
+
+.name-search-tree-meta {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  justify-self: end;
+}
+
+.name-search-tree-value {
+  grid-column: 1 / -1;
+  color: var(--text);
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.name-search-tree-empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.name-search-tree-node:last-child > .name-search-tree-summary,
+.name-search-tree-node:last-child > .name-search-tree-children > *:last-child,
+.name-search-tree-leaf:last-child {
+  border-bottom: none;
 }
 
 .name-search-json-details > summary {

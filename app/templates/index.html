@@ -209,6 +209,10 @@
             <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 12h4"/><path d="M15 15h2"/><path d="M17 9h2"/></svg></span>
             <span class="view-chip-label" data-i18n="nav_finance">Financeiro</span>
           </button>
+          <button type="button" class="view-chip" data-view="name-search">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8.5" x2="11" y2="13.5"/><line x1="8.5" y1="11" x2="13.5" y2="11"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_name_search">Pesquisa nomes</span>
+          </button>
           <button type="button" class="view-chip" data-view="members">
             <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></span>
             <span class="view-chip-label" data-i18n="nav_members">Membros</span>
@@ -335,6 +339,12 @@
             <span class="launch-card-kicker">Recebimentos</span>
             <strong>Financeiro</strong>
             <p>Crie cobrancas PIX, acompanhe status e consolide pagamentos por grupo.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="name-search">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8.5" x2="11" y2="13.5"/><line x1="8.5" y1="11" x2="13.5" y2="11"/></svg></span>
+            <span class="launch-card-kicker">Consulta</span>
+            <strong>Pesquisa nomes</strong>
+            <p>Busque pessoas por nome e visualize dados principais, contatos e localizacao.</p>
           </button>
           <button type="button" class="launch-card" data-view="members">
             <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></span>
@@ -1054,6 +1064,64 @@
               </table>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- NAME SEARCH -->
+      <section id="view-name-search" class="view">
+        <div class="members-hero">
+          <div class="members-hero-copy">
+            <span class="members-kicker" id="name-search-kicker">Consulta externa</span>
+            <h2 id="name-search-title">Pesquisa de nomes</h2>
+            <p id="name-search-copy">Use a busca por nome para consultar rapidamente dados principais, telefones, emails e enderecos sem sair do painel.</p>
+          </div>
+          <div class="members-hero-side">
+            <span class="members-hero-label" id="name-search-side-label">Fluxo rapido</span>
+            <strong id="name-search-side-title">Digite o nome e valide os resultados</strong>
+            <p id="name-search-side-copy">A tabela exibe os dados principais da API, incluindo contatos e localizacao resumida para cada registro.</p>
+          </div>
+        </div>
+
+        <div class="members-bar">
+          <div class="members-stats">
+            <div class="stat-item"><span class="val" id="name-search-total">0</span><span class="lbl" id="name-search-total-label">Resultados</span></div>
+            <div class="stat-item"><span class="val" id="name-search-phones">0</span><span class="lbl" id="name-search-phones-label">Telefones</span></div>
+            <div class="stat-item"><span class="val" id="name-search-emails">0</span><span class="lbl" id="name-search-emails-label">Emails</span></div>
+          </div>
+          <div class="members-actions">
+            <div class="search-wrap">
+              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="name-search-input" type="text" placeholder="Digite o nome para pesquisar" onkeydown="if(event.key==='Enter'){event.preventDefault();searchNames();}"/>
+            </div>
+            <button id="name-search-btn" class="btn-primary" onclick="searchNames()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Pesquisar
+            </button>
+            <button id="name-search-clear-btn" class="btn-secondary" onclick="clearNameSearch()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <div id="name-search-msg" class="msg"></div>
+
+        <div class="table-wrap name-search-table-wrap">
+          <div class="table-title" id="name-search-table-title">Resultados da pesquisa</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Pessoa</th>
+                <th>Nascimento / Mae</th>
+                <th>Contatos</th>
+                <th>Endereco</th>
+                <th>Sexo</th>
+              </tr>
+            </thead>
+            <tbody id="name-search-body">
+              <tr><td colspan="5" class="muted" style="padding:18px;text-align:center">Digite um nome para iniciar a pesquisa.</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

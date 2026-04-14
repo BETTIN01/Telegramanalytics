@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 
 let chatId     = null;
 let activeView = 'home';
@@ -41,6 +41,11 @@ const refreshState = {
   botStatusSignature: '',
 };
 let activeViewRefreshTimer = null;
+let nameSearchState = {
+  query: '',
+  rows: [],
+  source: '',
+};
 
 const NOTIFICATIONS_KEY = 'tg_analytics_notifications_v3';
 const MAX_NOTIFICATIONS = 24;
@@ -62,6 +67,7 @@ const VIEW_CONTEXT = {
     goals: 'Defina metas por grupo e acompanhe o progresso de crescimento, base e churn.',
     pixel: 'Conecte a Meta para acompanhar status de campanhas, cliques, leads e preparar o rastreamento do Pixel.',
     finance: 'Crie cobrancas PIX, acompanhe pagamentos e centralize recebimentos por grupo.',
+    'name-search': 'Pesquise nomes em base externa e consulte dados principais, contatos e localizacao em uma unica tela.',
     members: 'Gerencie a base de membros, admins e sincronizacoes com o Telegram.',
     vault: 'Acesse categorias seguras e entradas sensiveis do projeto.',
     scheduler: 'Controle a fila de mensagens agendadas para o grupo ativo.',
@@ -77,6 +83,7 @@ const VIEW_CONTEXT = {
     goals: 'Set group goals and track progress for growth, member base and churn.',
     pixel: 'Connect Meta to track campaign status, clicks, leads and prepare full Pixel tracking.',
     finance: 'Create PIX charges, track payments and centralize cashflow by group.',
+    'name-search': 'Search names in an external base and review key data, contacts and location in one screen.',
     members: 'Manage member base, admins and Telegram synchronizations.',
     vault: 'Access secure categories and sensitive project entries.',
     scheduler: 'Control the queue of scheduled messages for the active group.',
@@ -85,8 +92,8 @@ const VIEW_CONTEXT = {
   }
 };
 
-const VIEW_ORDER = ['home', 'overview', 'charts', 'reports', 'goals', 'events', 'pixel', 'members', 'finance', 'vault', 'scheduler', 'logs', 'settings'];
-const LAUNCH_ORDER = ['overview', 'charts', 'reports', 'goals', 'events', 'pixel', 'members', 'finance', 'vault', 'scheduler', 'logs', 'settings'];
+const VIEW_ORDER = ['home', 'overview', 'charts', 'reports', 'goals', 'events', 'pixel', 'finance', 'name-search', 'members', 'vault', 'scheduler', 'logs', 'settings'];
+const LAUNCH_ORDER = ['overview', 'charts', 'reports', 'goals', 'events', 'pixel', 'finance', 'name-search', 'members', 'vault', 'scheduler', 'logs', 'settings'];
 let currentLang = localStorage.getItem('lang') || 'pt';
 let currentTheme = localStorage.getItem('theme') || 'light';
 let currentThemePreset = localStorage.getItem('theme_preset') || 'corporate';
@@ -685,6 +692,7 @@ const UI_COPY = {
       goals: { kicker: 'Planejamento', title: 'Metas', desc: 'Defina objetivos por grupo e acompanhe a execucao em tempo real.' },
       pixel: { kicker: 'Meta', title: 'PIXEL', desc: 'Conecte o Pixel da Meta, acompanhe campanhas, cliques e leads em um unico painel.' },
       finance: { kicker: 'Recebimentos', title: 'Financeiro', desc: 'Crie cobrancas PIX, acompanhe status e consolide pagamentos por grupo.' },
+      'name-search': { kicker: 'Consulta', title: 'Pesquisa nomes', desc: 'Busque pessoas por nome e visualize dados principais, contatos e localizacao.' },
       members: { kicker: 'Base', title: 'Membros', desc: 'Veja admins, membros comuns e sincronize a base do Telegram.' },
       vault: { kicker: 'Seguranca', title: 'Cofre', desc: 'Acesse categorias e entradas seguras vinculadas ao projeto.' },
       scheduler: { kicker: 'Automacao', title: 'Agendador', desc: 'Crie e acompanhe mensagens agendadas por grupo.' },
@@ -918,6 +926,32 @@ const UI_COPY = {
       importEmpty: 'Selecione um arquivo ou cole um conteudo para importar.',
       lookupToast: 'Transacao carregada para o painel.',
       refreshManyToast: function(updated) { return updated ? `${updated} pagamentos atualizados.` : 'Nenhum pagamento precisou de atualizacao.'; }
+    },
+    nameSearch: {
+      kicker: 'Consulta externa',
+      title: 'Pesquisa de nomes',
+      copy: 'Use a busca por nome para consultar dados principais, contatos e localizacao sem sair do dashboard.',
+      sideLabel: 'Fluxo rapido',
+      sideTitle: 'Digite o nome e valide os resultados',
+      sideCopy: 'Os resultados mostram nome, CPF, data de nascimento, contatos e endereco resumido vindos da API conectada.',
+      placeholder: 'Digite o nome para pesquisar',
+      tableTitle: 'Resultados da pesquisa',
+      headers: ['Pessoa', 'Nascimento / Mae', 'Contatos', 'Endereco', 'Sexo'],
+      stats: {
+        total: 'Resultados',
+        phones: 'Telefones',
+        emails: 'Emails'
+      },
+      buttons: {
+        search: 'Pesquisar',
+        clear: 'Limpar'
+      },
+      idle: 'Digite um nome e clique em pesquisar.',
+      minChars: 'Informe ao menos 2 caracteres para pesquisar.',
+      loading: 'Consultando API de nomes...',
+      empty: 'Nenhum resultado encontrado para esta pesquisa.',
+      unknown: 'Nao informado',
+      found: function(total, query) { return `${total} resultado(s) encontrado(s) para "${query}".`; }
     },
     members: {
       stats: ['Total', 'Admins', 'Membros'],
@@ -1169,6 +1203,7 @@ const UI_COPY = {
       goals: { kicker: 'Planning', title: 'Goals', desc: 'Set goals by group and follow execution in real time.' },
       pixel: { kicker: 'Meta', title: 'PIXEL', desc: 'Connect Meta Pixel and monitor campaigns, clicks and leads in one place.' },
       finance: { kicker: 'Revenue', title: 'Finance', desc: 'Create PIX charges, track status and consolidate payments by group.' },
+      'name-search': { kicker: 'Lookup', title: 'Name search', desc: 'Search people by name and view key details, contacts and location.' },
       members: { kicker: 'Base', title: 'Members', desc: 'See admins, members and sync the Telegram base.' },
       vault: { kicker: 'Security', title: 'Vault', desc: 'Access secure categories and protected project entries.' },
       scheduler: { kicker: 'Automation', title: 'Scheduler', desc: 'Create and monitor scheduled messages by group.' },
@@ -1402,6 +1437,32 @@ const UI_COPY = {
       importEmpty: 'Select a file or paste content to import.',
       lookupToast: 'Transaction loaded into the panel.',
       refreshManyToast: function(updated) { return updated ? `${updated} payments refreshed.` : 'No payment required a refresh.'; }
+    },
+    nameSearch: {
+      kicker: 'External lookup',
+      title: 'Name search',
+      copy: 'Use name search to query key personal data, contacts and location without leaving the dashboard.',
+      sideLabel: 'Quick flow',
+      sideTitle: 'Type a name and validate the results',
+      sideCopy: 'Results include name, CPF, birth date, contacts and a compact address summary from the connected API.',
+      placeholder: 'Type a name to search',
+      tableTitle: 'Search results',
+      headers: ['Person', 'Birth / Mother', 'Contacts', 'Address', 'Sex'],
+      stats: {
+        total: 'Results',
+        phones: 'Phones',
+        emails: 'Emails'
+      },
+      buttons: {
+        search: 'Search',
+        clear: 'Clear'
+      },
+      idle: 'Type a name and click search.',
+      minChars: 'Enter at least 2 characters to search.',
+      loading: 'Querying name API...',
+      empty: 'No results found for this search.',
+      unknown: 'Not informed',
+      found: function(total, query) { return `${total} result(s) found for "${query}".`; }
     },
     members: {
       stats: ['Total', 'Admins', 'Members'],
@@ -2375,13 +2436,13 @@ function getNotificationDisplayParts(item) {
     const title = item.title || text.notifications.paymentCreatedTitle;
     const scope = item.chat_title || item.chat_id || text.notifications.payment;
     const value = item.amount ? formatBRL(item.amount) : '';
-    const message = item.message || [scope, value].filter(Boolean).join(' • ') || text.notifications.paymentCreatedMessage;
+    const message = item.message || [scope, value].filter(Boolean).join(' â€¢ ') || text.notifications.paymentCreatedMessage;
     return {
       badge: text.notifications.payment,
       title: title,
       message: message,
       scope: item.provider_account || '',
-      icon: '💰',
+      icon: 'ðŸ’°',
       tone: 'finance'
     };
   }
@@ -2391,7 +2452,7 @@ function getNotificationDisplayParts(item) {
     title: actor || (type === 'join' ? text.notifications.joined : text.notifications.left),
     message: type === 'join' ? `${text.notifications.joined} em ${item.chat_title || item.chat_id || '-'}` : `${text.notifications.left} de ${item.chat_title || item.chat_id || '-'}`,
     scope: item.chat_title || item.chat_id || '',
-    icon: '👤',
+    icon: 'ðŸ‘¤',
     tone: type
   };
 }
@@ -2413,7 +2474,7 @@ function showLiveNotificationCard(item) {
       <p>${escHtml(parts.message)}</p>
       ${parts.scope ? `<span class="live-notification-scope">${escHtml(parts.scope)}</span>` : ''}
     </div>
-    <button type="button" class="live-notification-close" aria-label="${escHtml(getUiText().notifications.removeAria)}">×</button>
+    <button type="button" class="live-notification-close" aria-label="${escHtml(getUiText().notifications.removeAria)}">Ã—</button>
   `;
   const close = function() {
     card.classList.add('is-leaving');
@@ -3268,7 +3329,7 @@ function renderFinancePayments(rows) {
       <td><span class="finance-status-badge finance-status-badge--${meta.tone}">${meta.label}</span></td>
       <td class="muted finance-updated-cell">${updatedLabel}</td>
       <td>
-        <button class="btn-secondary finance-inline-btn" onclick="refreshFinancePayment('${String(row.payment_id).replace(/'/g, "\\'")}')">↻</button>
+        <button class="btn-secondary finance-inline-btn" onclick="refreshFinancePayment('${String(row.payment_id).replace(/'/g, "\\'")}')">â†»</button>
       </td>
     `;
     tr.addEventListener('click', function() {
@@ -3396,6 +3457,116 @@ async function loadFinance() {
   renderFinancePayments(financeState.filteredPayments);
   renderFinanceActivePayment(financeState.activePayment);
   syncFinancePolling();
+}
+
+function renderNameSearchSummary(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const phones = list.reduce(function(sum, row) { return sum + Number(row && row.phone_count || 0); }, 0);
+  const emails = list.reduce(function(sum, row) { return sum + Number(row && row.email_count || 0); }, 0);
+  if (el('name-search-total')) el('name-search-total').textContent = String(list.length);
+  if (el('name-search-phones')) el('name-search-phones').textContent = String(phones);
+  if (el('name-search-emails')) el('name-search-emails').textContent = String(emails);
+}
+
+function renderNameSearchRows(rows) {
+  const text = getUiText().nameSearch;
+  const tbody = el('name-search-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) {
+    const emptyLabel = nameSearchState.query ? text.empty : text.idle;
+    tbody.innerHTML = `<tr><td colspan="5" class="muted" style="padding:18px;text-align:center">${escHtml(emptyLabel)}</td></tr>`;
+    return;
+  }
+  list.forEach(function(row) {
+    const fullName = row && row.name ? String(row.name) : text.unknown;
+    const cpf = row && row.cpf ? String(row.cpf) : text.unknown;
+    const birthDate = row && row.birth_date ? String(row.birth_date).split(' ')[0] : text.unknown;
+    const mother = row && row.mother_name ? String(row.mother_name) : text.unknown;
+    const sex = row && row.sex ? String(row.sex) : text.unknown;
+    const addresses = Array.isArray(row && row.addresses) ? row.addresses : [];
+    const address = addresses[0] || (row && row.primary_address) || text.unknown;
+    const phones = Array.isArray(row && row.phones) ? row.phones : [];
+    const emails = Array.isArray(row && row.emails) ? row.emails : [];
+    const phoneLine = phones.length ? phones.slice(0, 2).map(escHtml).join('<br/>') : escHtml(text.unknown);
+    const emailLine = emails.length ? emails.slice(0, 2).map(escHtml).join('<br/>') : escHtml(text.unknown);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="name-search-main">${escHtml(fullName)}</div>
+        <div class="name-search-sub">CPF: ${escHtml(cpf)}</div>
+      </td>
+      <td>
+        <div class="name-search-main">${escHtml(birthDate)}</div>
+        <div class="name-search-sub">${escHtml(mother)}</div>
+      </td>
+      <td>
+        <div class="name-search-main">${phoneLine}</div>
+        <div class="name-search-sub">${emailLine}</div>
+      </td>
+      <td><div class="name-search-sub">${escHtml(address)}</div></td>
+      <td><div class="name-search-main">${escHtml(sex)}</div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function loadNameSearch() {
+  const text = getUiText().nameSearch;
+  renderNameSearchSummary(nameSearchState.rows);
+  renderNameSearchRows(nameSearchState.rows);
+  if (!nameSearchState.query && el('name-search-msg')) {
+    showMsg('name-search-msg', text.idle, true);
+  }
+}
+
+async function searchNames() {
+  const text = getUiText().nameSearch;
+  const input = el('name-search-input');
+  const query = input ? String(input.value || '').trim() : '';
+  if (query.length < 2) {
+    showMsg('name-search-msg', text.minChars, false);
+    renderNameSearchSummary([]);
+    renderNameSearchRows([]);
+    return;
+  }
+  showMsg('name-search-msg', text.loading, true);
+  try {
+    const data = await api(`/api/name-search?nome=${encodeURIComponent(query)}`);
+    const rows = Array.isArray(data.results) ? data.results : [];
+    nameSearchState = {
+      query: query,
+      rows: rows,
+      source: String(data.source || ''),
+    };
+    renderNameSearchSummary(rows);
+    renderNameSearchRows(rows);
+    showMsg('name-search-msg', text.found(Number(data.total || rows.length), query), true);
+  } catch (e) {
+    nameSearchState = {
+      query: query,
+      rows: [],
+      source: '',
+    };
+    renderNameSearchSummary([]);
+    renderNameSearchRows([]);
+    showMsg('name-search-msg', (currentLang === 'en' ? 'Search error: ' : 'Erro na busca: ') + e.message, false);
+  }
+}
+
+function clearNameSearch() {
+  const text = getUiText().nameSearch;
+  if (el('name-search-input')) el('name-search-input').value = '';
+  nameSearchState = {
+    query: '',
+    rows: [],
+    source: '',
+  };
+  renderNameSearchSummary([]);
+  renderNameSearchRows([]);
+  showMsg('name-search-msg', text.idle, true);
 }
 
 function fillPixelSettings(settings) {
@@ -3831,7 +4002,7 @@ window.removeGroup = async function(cid) {
   } catch(e) { showToast((currentLang === 'en' ? 'Could not remove group: ' : 'Erro ao remover grupo: ') + e.message, 'error'); }
 };
 
-// ── COFRE ────────────────────────────────────────────────────
+// â”€â”€ COFRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var vaultCatId  = null;
 var vaultEditId = null;
 
@@ -3841,9 +4012,9 @@ function isVaultSensitiveLabel(label) {
 
 function maskVaultValue(value) {
   const raw = String(value || '');
-  if (!raw) return '••••••';
-  if (raw.length <= 4) return '•'.repeat(Math.max(4, raw.length));
-  return raw.slice(0, 2) + '•'.repeat(Math.min(10, Math.max(4, raw.length - 4))) + raw.slice(-2);
+  if (!raw) return 'â€¢â€¢â€¢â€¢â€¢â€¢';
+  if (raw.length <= 4) return 'â€¢'.repeat(Math.max(4, raw.length));
+  return raw.slice(0, 2) + 'â€¢'.repeat(Math.min(10, Math.max(4, raw.length - 4))) + raw.slice(-2);
 }
 
 function openVaultPasswordGenerator(targetInput) {
@@ -3891,7 +4062,7 @@ async function loadVault() {
     trigger.onclick = (function(cid,cname){ return function(){ vaultSelectCat(cid,cname); }; })(c.id, c.name||'');
     var icon = document.createElement('span');
     icon.className = 'vault-cat-symbol';
-    icon.textContent = c.icon || '•';
+    icon.textContent = c.icon || 'â€¢';
     var copy = document.createElement('span');
     copy.className = 'vault-cat-copy';
     var title = document.createElement('strong');
@@ -3904,7 +4075,7 @@ async function loadVault() {
     trigger.appendChild(copy);
     var btn  = document.createElement('button');
     btn.className   = 'btn-icon-sm';
-    btn.textContent = '×';
+    btn.textContent = 'Ã—';
     btn.onclick = (function(cid){ return function(){ vaultDeleteCat(cid); }; })(c.id);
     btn.type = 'button';
     btn.title = text.vault.removeCategoryAria;
@@ -4126,7 +4297,7 @@ window.vaultAddField = function(label, value, sensitive) {
     openVaultPasswordGenerator(val);
   };
   var btn = document.createElement('button');
-  btn.className = 'btn-icon-sm'; btn.textContent = '×';
+  btn.className = 'btn-icon-sm'; btn.textContent = 'Ã—';
   btn.onclick = function() { div.remove(); };
   btn.type = 'button';
   btn.setAttribute('aria-label', text.common.remove);
@@ -4171,7 +4342,7 @@ window.vaultDeleteEntry = async function(id) {
   await api('/api/vault/entries/' + id, {method:'DELETE'});
   await vaultSelectCat(vaultCatId, el('vault-cat-title').textContent);
 };
-// ── FIM COFRE ────────────────────────────────────────────────
+// â”€â”€ FIM COFRE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const LOADERS = {
   home:     loadHome,
@@ -4183,6 +4354,7 @@ const LOADERS = {
   goals:    loadGoals,
   pixel:    loadPixel,
   finance:  loadFinance,
+  'name-search': loadNameSearch,
   members:  loadMembers,
   settings: loadSettings,
 };
@@ -4240,38 +4412,38 @@ el('group-select').addEventListener('change', async function(e) {
 })();
 
 
-// ═══════════════════════════════════════════════════════════
-// BLOCO 3 — NOVAS FUNCIONALIDADES
-// ═══════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// BLOCO 3 â€” NOVAS FUNCIONALIDADES
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── i18n ────────────────────────────────────────────────────
+// â”€â”€ i18n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LANGS = {
   'pt': {
     home_title:'Inicio',
-    nav_overview:'Overview', nav_charts:'Gráficos', nav_events:'Eventos',
-    nav_reports:'Relatórios', nav_members:'Membros', nav_vault:'Cofre',
-    nav_goals:'Metas', nav_pixel:'PIXEL', nav_finance:'Financeiro', nav_settings:'Configurações', nav_scheduler:'Agendador', nav_logs:'Logs',
+    nav_overview:'Overview', nav_charts:'GrÃ¡ficos', nav_events:'Eventos',
+    nav_reports:'RelatÃ³rios', nav_members:'Membros', nav_vault:'Cofre',
+    nav_goals:'Metas', nav_pixel:'PIXEL', nav_finance:'Financeiro', nav_name_search:'Pesquisa nomes', nav_settings:'ConfiguraÃ§Ãµes', nav_scheduler:'Agendador', nav_logs:'Logs',
     scheduler_title:'Agendador de Mensagens', sched_queue:'Fila de Mensagens',
     sched_empty:'Nenhuma mensagem agendada.',
     btn_schedule:'Agendar', btn_clear_logs:'Limpar',
-    col_message:'Mensagem', col_date:'Data/Hora', col_status:'Status', col_action:'Ação',
+    col_message:'Mensagem', col_date:'Data/Hora', col_status:'Status', col_action:'AÃ§Ã£o',
     logs_title:'Log do Bot em Tempo Real', logs_empty:'Aguardando logs do bot...',
-    overview_title:'Overview', charts_title:'Gráficos', events_title:'Eventos',
-    reports_title:'Relatórios', goals_title:'Metas', pixel_title:'PIXEL', finance_title:'Financeiro', members_title:'Membros', vault_title:'Cofre',
-    settings_title:'Configurações', scheduler_page:'Agendador', logs_page:'Logs',
+    overview_title:'Overview', charts_title:'GrÃ¡ficos', events_title:'Eventos',
+    reports_title:'RelatÃ³rios', goals_title:'Metas', pixel_title:'PIXEL', finance_title:'Financeiro', 'name-search_title':'Pesquisa nomes', members_title:'Membros', vault_title:'Cofre',
+    settings_title:'ConfiguraÃ§Ãµes', scheduler_page:'Agendador', logs_page:'Logs',
   },
   'en': {
     home_title:'Home',
     nav_overview:'Overview', nav_charts:'Charts', nav_events:'Events',
     nav_reports:'Reports', nav_members:'Members', nav_vault:'Vault',
-    nav_goals:'Goals', nav_pixel:'PIXEL', nav_finance:'Finance', nav_settings:'Settings', nav_scheduler:'Scheduler', nav_logs:'Logs',
+    nav_goals:'Goals', nav_pixel:'PIXEL', nav_finance:'Finance', nav_name_search:'Name search', nav_settings:'Settings', nav_scheduler:'Scheduler', nav_logs:'Logs',
     scheduler_title:'Message Scheduler', sched_queue:'Message Queue',
     sched_empty:'No scheduled messages.',
     btn_schedule:'Schedule', btn_clear_logs:'Clear',
     col_message:'Message', col_date:'Date/Time', col_status:'Status', col_action:'Action',
     logs_title:'Bot Log (Live)', logs_empty:'Waiting for bot logs...',
     overview_title:'Overview', charts_title:'Charts', events_title:'Events',
-    reports_title:'Reports', goals_title:'Goals', pixel_title:'PIXEL', finance_title:'Finance', members_title:'Members', vault_title:'Vault',
+    reports_title:'Reports', goals_title:'Goals', pixel_title:'PIXEL', finance_title:'Finance', 'name-search_title':'Name search', members_title:'Members', vault_title:'Vault',
     settings_title:'Settings', scheduler_page:'Scheduler', logs_page:'Logs',
   }
 };
@@ -4294,10 +4466,10 @@ function toggleLang() {
   currentLang = currentLang === 'pt' ? 'en' : 'pt';
   localStorage.setItem('lang', currentLang);
   applyLang();
-  showToast(currentLang === 'pt' ? 'Idioma: Português' : 'Language: English', 'info');
+  showToast(currentLang === 'pt' ? 'Idioma: PortuguÃªs' : 'Language: English', 'info');
 }
 
-// ── Tema claro/escuro ────────────────────────────────────────
+// â”€â”€ Tema claro/escuro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 function updateAutoRefreshUI() {
@@ -4321,10 +4493,10 @@ function applyTheme(theme) {
 function toggleTheme() {
   const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(nextTheme);
-  showToast(currentTheme === 'dark' ? '☀️ Tema claro ativado' : '🌙 Tema escuro ativado', 'info');
+  showToast(currentTheme === 'dark' ? 'â˜€ï¸ Tema claro ativado' : 'ðŸŒ™ Tema escuro ativado', 'info');
 }
 
-// ── Toast ────────────────────────────────────────────────────
+// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function reorderViewCollections() {
   const railTrack = el('view-rail-track');
   if (railTrack) {
@@ -4550,6 +4722,23 @@ function localizeStaticSections() {
   setButtonLabel(financeButtons[3], text.finance.buttons.clearImport);
   setButtonLabel(financeButtons[4], text.finance.buttons.importHistory);
   setButtonLabel(financeButtons[5], text.finance.buttons.lookupPayment);
+
+  setText('#name-search-kicker', text.nameSearch.kicker);
+  setText('#name-search-title', text.nameSearch.title);
+  setText('#name-search-copy', text.nameSearch.copy);
+  setText('#name-search-side-label', text.nameSearch.sideLabel);
+  setText('#name-search-side-title', text.nameSearch.sideTitle);
+  setText('#name-search-side-copy', text.nameSearch.sideCopy);
+  setText('#name-search-total-label', text.nameSearch.stats.total);
+  setText('#name-search-phones-label', text.nameSearch.stats.phones);
+  setText('#name-search-emails-label', text.nameSearch.stats.emails);
+  setText('#name-search-table-title', text.nameSearch.tableTitle);
+  setPlaceholder('#name-search-input', text.nameSearch.placeholder);
+  setButtonLabel('#name-search-btn', text.nameSearch.buttons.search);
+  setButtonLabel('#name-search-clear-btn', text.nameSearch.buttons.clear);
+  document.querySelectorAll('#view-name-search thead th').forEach(function(th, idx) {
+    if (typeof text.nameSearch.headers[idx] !== 'undefined') th.textContent = text.nameSearch.headers[idx];
+  });
 
   const memberLabels = document.querySelectorAll('#view-members .stat-item .lbl');
   text.members.stats.forEach(function(label, idx) { setText(memberLabels[idx], label); });
@@ -5007,7 +5196,7 @@ function showToast(msg, type = 'info', duration = 3500) {
     warning: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     info:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
   };
-  toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg">${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+  toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span class="toast-msg">${msg}</span><button class="toast-close" onclick="this.parentElement.remove()">Ã—</button>`;
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add('toast--visible'));
   setTimeout(() => {
@@ -5016,7 +5205,7 @@ function showToast(msg, type = 'info', duration = 3500) {
   }, duration);
 }
 
-// ── Skeleton loading ─────────────────────────────────────────
+// â”€â”€ Skeleton loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function showSkeleton() {
   const sk = document.getElementById('skeleton-cards');
   const rc = document.getElementById('real-cards');
@@ -5031,7 +5220,7 @@ function hideSkeleton() {
   if (rc) rc.style.display = 'grid';
 }
 
-// ── SSE Alertas em tempo real ────────────────────────────────
+// â”€â”€ SSE Alertas em tempo real â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _sseSource = null;
 let _sseReconnectTimer = null;
 
@@ -5050,8 +5239,8 @@ function handleIncomingAlert(data) {
   playNotificationSound(inserted.type);
   if (inserted.type === 'finance') {
     const scope = inserted.chat_title || inserted.provider_account || 'Financeiro';
-    const amount = Number(inserted.amount || 0) > 0 ? ` • ${formatBRL(inserted.amount)}` : '';
-    showToast(`💰 ${scope}${amount}`, 'info', 5000);
+    const amount = Number(inserted.amount || 0) > 0 ? ` â€¢ ${formatBRL(inserted.amount)}` : '';
+    showToast(`ðŸ’° ${scope}${amount}`, 'info', 5000);
     if (activeView === 'home' || activeView === 'overview' || activeView === 'finance') {
       scheduleActiveViewRefresh(260);
     }
@@ -5059,7 +5248,7 @@ function handleIncomingAlert(data) {
   }
   const actor = getNotificationActor(inserted);
   const label = inserted.type === 'join' ? 'entrou' : 'saiu';
-  showToast(`👤 ${actor} ${label} em ${inserted.chat_title}`, inserted.type === 'join' ? 'success' : 'warning', 5000);
+  showToast(`ðŸ‘¤ ${actor} ${label} em ${inserted.chat_title}`, inserted.type === 'join' ? 'success' : 'warning', 5000);
   if (activeView === 'home' || activeView === 'overview' || activeView === 'events' || activeView === 'members') {
     scheduleActiveViewRefresh(260);
   }
@@ -5074,7 +5263,7 @@ function startSSE() {
         const data = JSON.parse(e.data);
         if (!data || data.ping) return;
         if (!getNotificationActor(data) || !data.chat_title) return;
-        const icon  = data.type === 'join' ? '🟢' : '🔴';
+        const icon  = data.type === 'join' ? 'ðŸŸ¢' : 'ðŸ”´';
         const label = data.type === 'join' ? 'entrou' : 'saiu';
         pushNotificationItem(data);
         playNotificationSound(data.type);
@@ -5090,7 +5279,7 @@ function startSSE() {
   } catch(e) {}
 }
 
-// ── Export CSV/PDF ───────────────────────────────────────────
+// â”€â”€ Export CSV/PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function getDownloadFilename(header, fallback) {
   if (!header) return fallback;
   const utf8 = header.match(/filename\*=UTF-8''([^;]+)/i);
@@ -5187,7 +5376,7 @@ async function exportPDF() {
   }
 }
 
-// ── Scheduler ────────────────────────────────────────────────
+// â”€â”€ Scheduler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function loadScheduler() {
   const text = getUiText();
   const tbody = document.getElementById('sched-tbody');
@@ -5204,7 +5393,7 @@ async function loadScheduler() {
     if (empty) empty.style.display = 'none';
     rows.forEach((r, i) => {
       const tr = document.createElement('tr');
-      const status = r.sent ? '<span style="color:var(--green);font-weight:600">✓ Enviado</span>' : '<span style="color:var(--yellow);font-weight:600">⏳ Pendente</span>';
+      const status = r.sent ? '<span style="color:var(--green);font-weight:600">âœ“ Enviado</span>' : '<span style="color:var(--yellow);font-weight:600">â³ Pendente</span>';
       tr.innerHTML = `
         <td>${i+1}</td>
         <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.message}</td>
@@ -5214,7 +5403,7 @@ async function loadScheduler() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
         </button></td>`;
       const statusNode = tr.querySelector('td:nth-child(4) span');
-      if (statusNode) statusNode.textContent = `${r.sent ? '✓' : '⏳'} ${r.sent ? text.scheduler.sent : text.scheduler.pending}`;
+      if (statusNode) statusNode.textContent = `${r.sent ? 'âœ“' : 'â³'} ${r.sent ? text.scheduler.sent : text.scheduler.pending}`;
       tbody.appendChild(tr);
     });
   } catch(e) { showToast(text.scheduler.loadError, 'error'); }
@@ -5247,7 +5436,7 @@ async function schedDelete(id) {
   await loadScheduler();
 }
 
-// ── Bot logs ─────────────────────────────────────────────────
+// â”€â”€ Bot logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _logInterval = null;
 
 async function loadLogs() {
@@ -5277,7 +5466,7 @@ function escHtml(s) {
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Gerador de senhas ─────────────────────────────────────────
+// â”€â”€ Gerador de senhas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let _pwTargetField = null;
 
 function pwGenUpdate() {
@@ -5299,10 +5488,10 @@ function pwGenUpdate() {
 
   document.getElementById('pw-result').value = pw;
 
-  // força meter
+  // forÃ§a meter
   const score = (upper?1:0)+(num?1:0)+(sym?1:0)+(len>=16?1:0)+(len>=24?1:0);
   const colors = ['#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e'];
-  const labels = ['Muito fraca','Fraca','Média','Forte','Muito forte'];
+  const labels = ['Muito fraca','Fraca','MÃ©dia','Forte','Muito forte'];
   const fill   = document.getElementById('pw-strength-fill');
   const label  = document.getElementById('pw-strength-label');
   if (fill)  { fill.style.width = `${(score/5)*100}%`; fill.style.background = colors[score-1]||'#ef4444'; }
@@ -5327,7 +5516,7 @@ function pwUseInField() {
   el('vault-pw-modal').style.display = 'none';
 }
 
-// ── Vault busca global ───────────────────────────────────────
+// â”€â”€ Vault busca global â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function vaultGlobalSearch(q) {
   q = q.toLowerCase().trim();
   const cards = document.querySelectorAll('#vault-entries .vault-card');
@@ -5338,7 +5527,7 @@ function vaultGlobalSearch(q) {
   });
 }
 
-// ── Vault histórico ──────────────────────────────────────────
+// â”€â”€ Vault histÃ³rico â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function showVaultHistory() {
   try {
     const logs = await api('/api/vault/access_log');
@@ -5355,19 +5544,19 @@ async function showVaultHistory() {
       ).join('');
     }
     el('vault-history-modal').style.display = 'flex';
-  } catch(e) { showToast('Erro ao carregar histórico', 'error'); }
+  } catch(e) { showToast('Erro ao carregar histÃ³rico', 'error'); }
 }
 
-// ── Hook no vaultCopyField para logar acesso ─────────────────
+// â”€â”€ Hook no vaultCopyField para logar acesso â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-// ── Dispatcher atualizado ─────────────────────────────────────
+// â”€â”€ Dispatcher atualizado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const _extraLoaders = {
   scheduler: loadScheduler,
   logs: loadLogs,
 };
 
-// ── Override da navegação para incluir novas views ────────────
+// â”€â”€ Override da navegaÃ§Ã£o para incluir novas views â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function updatePageTitle(view) {
   const t = LANGS[currentLang] || LANGS.pt;
   const titleKey = view + '_title';
@@ -5452,7 +5641,7 @@ document.querySelectorAll('.nav-item, .view-chip, .launch-card[data-view]').forE
   });
 });
 
-// ── Boot extras ──────────────────────────────────────────────
+// â”€â”€ Boot extras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.toggleTheme = function() {
   const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(nextTheme);
@@ -5475,6 +5664,8 @@ window.openVaultPasswordGenerator = openVaultPasswordGenerator;
 window.saveFinanceSettings = saveFinanceSettings;
 window.createFinancePayment = createFinancePayment;
 window.refreshFinancePayment = refreshFinancePayment;
+window.searchNames = searchNames;
+window.clearNameSearch = clearNameSearch;
 
 startSSE = function() {
   if (_sseSource) return;
@@ -5490,15 +5681,15 @@ startSSE = function() {
         playNotificationSound(data.type);
         if (data.type === 'finance') {
           const scope = data.chat_title || data.provider_account || 'Financeiro';
-          const amount = Number(data.amount || 0) > 0 ? ` • ${formatBRL(data.amount)}` : '';
-          showToast(`PIX • ${scope}${amount}`, 'info', 5000);
+          const amount = Number(data.amount || 0) > 0 ? ` â€¢ ${formatBRL(data.amount)}` : '';
+          showToast(`PIX â€¢ ${scope}${amount}`, 'info', 5000);
           if (activeView === 'home' || activeView === 'overview' || activeView === 'finance') {
             scheduleActiveViewRefresh(260);
           }
           return;
         }
         if (!getNotificationActor(data) || !data.chat_title) return;
-        const icon = data.type === 'join' ? '🟢' : '🔴';
+        const icon = data.type === 'join' ? 'ðŸŸ¢' : 'ðŸ”´';
         const label = data.type === 'join' ? 'entrou' : 'saiu';
         showToast(`${icon} ${getNotificationActor(data)} ${label} em ${data.chat_title}`, data.type === 'join' ? 'success' : 'warning', 5000);
         if (activeView === 'home' || activeView === 'overview' || activeView === 'events' || activeView === 'members') {
@@ -5563,3 +5754,4 @@ document.addEventListener('DOMContentLoaded', () => {
   pwGenUpdate();
   loadCurrentUserProfile();
 });
+

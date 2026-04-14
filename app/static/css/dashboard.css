@@ -8247,14 +8247,33 @@ textarea:focus-visible {
 }
 
 #view-members .table-wrap,
+#view-name-search .table-wrap,
 #view-settings .settings-section,
 #view-pixel .panel,
 #view-finance .panel {
   border-radius: 26px;
 }
 
-#view-members .table-wrap {
+#view-members .table-wrap,
+#view-name-search .table-wrap {
   overflow: hidden;
+}
+
+#view-name-search .table-wrap td {
+  vertical-align: top;
+}
+
+.name-search-main {
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.name-search-sub {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .settings-hero {

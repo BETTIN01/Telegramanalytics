@@ -43,8 +43,19 @@ const refreshState = {
 let activeViewRefreshTimer = null;
 let nameSearchState = {
   query: '',
+  searchType: 'nome',
   rows: [],
+  raw: null,
+  endpoint: '',
   source: '',
+};
+const NAME_SEARCH_TYPES = {
+  nome: { param: 'nome', minChars: 2, labels: { pt: 'Nome', en: 'Name' } },
+  cpf: { param: 'cpf', minChars: 1, labels: { pt: 'CPF', en: 'CPF' } },
+  titulo: { param: 'titulo', minChars: 1, labels: { pt: 'Titulo', en: 'Voter ID' } },
+  mae: { param: 'mae', minChars: 2, labels: { pt: 'Mae', en: 'Mother' } },
+  pai: { param: 'pai', minChars: 2, labels: { pt: 'Pai', en: 'Father' } },
+  rg: { param: 'rg', minChars: 1, labels: { pt: 'RG', en: 'RG' } },
 };
 
 const NOTIFICATIONS_KEY = 'tg_analytics_notifications_v3';
@@ -67,7 +78,7 @@ const VIEW_CONTEXT = {
     goals: 'Defina metas por grupo e acompanhe o progresso de crescimento, base e churn.',
     pixel: 'Conecte a Meta para acompanhar status de campanhas, cliques, leads e preparar o rastreamento do Pixel.',
     finance: 'Crie cobrancas PIX, acompanhe pagamentos e centralize recebimentos por grupo.',
-    'name-search': 'Pesquise nomes em base externa e consulte dados principais, contatos e localizacao em uma unica tela.',
+    'name-search': 'Consulte base externa por nome, CPF, titulo, mae, pai ou RG e veja a resposta completa da API.',
     members: 'Gerencie a base de membros, admins e sincronizacoes com o Telegram.',
     vault: 'Acesse categorias seguras e entradas sensiveis do projeto.',
     scheduler: 'Controle a fila de mensagens agendadas para o grupo ativo.',
@@ -83,7 +94,7 @@ const VIEW_CONTEXT = {
     goals: 'Set group goals and track progress for growth, member base and churn.',
     pixel: 'Connect Meta to track campaign status, clicks, leads and prepare full Pixel tracking.',
     finance: 'Create PIX charges, track payments and centralize cashflow by group.',
-    'name-search': 'Search names in an external base and review key data, contacts and location in one screen.',
+    'name-search': 'Query the external base by name, CPF, voter ID, mother, father or RG and inspect the full API response.',
     members: 'Manage member base, admins and Telegram synchronizations.',
     vault: 'Access secure categories and sensitive project entries.',
     scheduler: 'Control the queue of scheduled messages for the active group.',
@@ -692,7 +703,7 @@ const UI_COPY = {
       goals: { kicker: 'Planejamento', title: 'Metas', desc: 'Defina objetivos por grupo e acompanhe a execucao em tempo real.' },
       pixel: { kicker: 'Meta', title: 'PIXEL', desc: 'Conecte o Pixel da Meta, acompanhe campanhas, cliques e leads em um unico painel.' },
       finance: { kicker: 'Recebimentos', title: 'Financeiro', desc: 'Crie cobrancas PIX, acompanhe status e consolide pagamentos por grupo.' },
-      'name-search': { kicker: 'Consulta', title: 'Pesquisa nomes', desc: 'Busque pessoas por nome e visualize dados principais, contatos e localizacao.' },
+      'name-search': { kicker: 'Consulta', title: 'Consultas API', desc: 'Pesquise por nome, CPF, titulo, mae, pai ou RG e veja o retorno completo.' },
       members: { kicker: 'Base', title: 'Membros', desc: 'Veja admins, membros comuns e sincronize a base do Telegram.' },
       vault: { kicker: 'Seguranca', title: 'Cofre', desc: 'Acesse categorias e entradas seguras vinculadas ao projeto.' },
       scheduler: { kicker: 'Automacao', title: 'Agendador', desc: 'Crie e acompanhe mensagens agendadas por grupo.' },
@@ -929,29 +940,45 @@ const UI_COPY = {
     },
     nameSearch: {
       kicker: 'Consulta externa',
-      title: 'Pesquisa de nomes',
-      copy: 'Use a busca por nome para consultar dados principais, contatos e localizacao sem sair do dashboard.',
+      title: 'Consultas API completas',
+      copy: 'Consulte por nome, CPF, titulo, mae, pai ou RG e visualize toda a resposta sem sair do dashboard.',
       sideLabel: 'Fluxo rapido',
-      sideTitle: 'Digite o nome e valide os resultados',
-      sideCopy: 'Os resultados mostram nome, CPF, data de nascimento, contatos e endereco resumido vindos da API conectada.',
-      placeholder: 'Digite o nome para pesquisar',
-      tableTitle: 'Resultados da pesquisa',
-      headers: ['Pessoa', 'Nascimento / Mae', 'Contatos', 'Endereco', 'Sexo'],
+      sideTitle: 'Escolha o tipo e consulte',
+      sideCopy: 'A tabela mostra cada registro retornado e o bloco abaixo exibe o JSON bruto completo, literalmente como veio da API.',
+      placeholderByType: {
+        nome: 'Digite o nome para pesquisar',
+        cpf: 'Digite o CPF para pesquisar',
+        titulo: 'Digite o titulo para pesquisar',
+        mae: 'Digite o nome da mae para pesquisar',
+        pai: 'Digite o nome do pai para pesquisar',
+        rg: 'Digite o RG para pesquisar'
+      },
+      searchTypes: {
+        nome: 'Nome',
+        cpf: 'CPF',
+        titulo: 'Titulo',
+        mae: 'Mae',
+        pai: 'Pai',
+        rg: 'RG'
+      },
+      tableTitle: 'Registros retornados',
+      rawTitle: 'JSON completo retornado pela API',
+      headers: ['#', 'Tipo', 'Dados completos'],
       stats: {
         total: 'Resultados',
-        phones: 'Telefones',
-        emails: 'Emails'
+        records: 'Registros',
+        jsonSize: 'Tamanho JSON'
       },
       buttons: {
         search: 'Pesquisar',
         clear: 'Limpar'
       },
-      idle: 'Digite um nome e clique em pesquisar.',
-      minChars: 'Informe ao menos 2 caracteres para pesquisar.',
-      loading: 'Consultando API de nomes...',
-      empty: 'Nenhum resultado encontrado para esta pesquisa.',
-      unknown: 'Nao informado',
-      found: function(total, query) { return `${total} resultado(s) encontrado(s) para "${query}".`; }
+      idle: 'Escolha o tipo, digite um valor e clique em pesquisar.',
+      minChars: function(min, label) { return `Informe ao menos ${min} caractere(s) para ${label}.`; },
+      loading: function(label) { return `Consultando API por ${label}...`; },
+      empty: 'Nenhum registro encontrado na chave RESULTADOS.',
+      rawIdle: 'Aguardando pesquisa.',
+      found: function(total, query, label) { return `${total} registro(s) encontrado(s) para ${label} "${query}".`; }
     },
     members: {
       stats: ['Total', 'Admins', 'Membros'],
@@ -1203,7 +1230,7 @@ const UI_COPY = {
       goals: { kicker: 'Planning', title: 'Goals', desc: 'Set goals by group and follow execution in real time.' },
       pixel: { kicker: 'Meta', title: 'PIXEL', desc: 'Connect Meta Pixel and monitor campaigns, clicks and leads in one place.' },
       finance: { kicker: 'Revenue', title: 'Finance', desc: 'Create PIX charges, track status and consolidate payments by group.' },
-      'name-search': { kicker: 'Lookup', title: 'Name search', desc: 'Search people by name and view key details, contacts and location.' },
+      'name-search': { kicker: 'Lookup', title: 'API lookups', desc: 'Search by name, CPF, voter ID, mother, father or RG and inspect the full payload.' },
       members: { kicker: 'Base', title: 'Members', desc: 'See admins, members and sync the Telegram base.' },
       vault: { kicker: 'Security', title: 'Vault', desc: 'Access secure categories and protected project entries.' },
       scheduler: { kicker: 'Automation', title: 'Scheduler', desc: 'Create and monitor scheduled messages by group.' },
@@ -1440,29 +1467,45 @@ const UI_COPY = {
     },
     nameSearch: {
       kicker: 'External lookup',
-      title: 'Name search',
-      copy: 'Use name search to query key personal data, contacts and location without leaving the dashboard.',
+      title: 'Full API lookups',
+      copy: 'Search by name, CPF, voter ID, mother, father or RG and inspect the full API payload without leaving the dashboard.',
       sideLabel: 'Quick flow',
-      sideTitle: 'Type a name and validate the results',
-      sideCopy: 'Results include name, CPF, birth date, contacts and a compact address summary from the connected API.',
-      placeholder: 'Type a name to search',
-      tableTitle: 'Search results',
-      headers: ['Person', 'Birth / Mother', 'Contacts', 'Address', 'Sex'],
+      sideTitle: 'Choose a type and query',
+      sideCopy: 'The table shows each returned record and the panel below prints the raw JSON exactly as returned by the API.',
+      placeholderByType: {
+        nome: 'Type a name to search',
+        cpf: 'Type a CPF to search',
+        titulo: 'Type a voter ID to search',
+        mae: 'Type the mother name to search',
+        pai: 'Type the father name to search',
+        rg: 'Type an RG to search'
+      },
+      searchTypes: {
+        nome: 'Name',
+        cpf: 'CPF',
+        titulo: 'Voter ID',
+        mae: 'Mother',
+        pai: 'Father',
+        rg: 'RG'
+      },
+      tableTitle: 'Returned records',
+      rawTitle: 'Full raw JSON response',
+      headers: ['#', 'Type', 'Full data'],
       stats: {
         total: 'Results',
-        phones: 'Phones',
-        emails: 'Emails'
+        records: 'Records',
+        jsonSize: 'JSON size'
       },
       buttons: {
         search: 'Search',
         clear: 'Clear'
       },
-      idle: 'Type a name and click search.',
-      minChars: 'Enter at least 2 characters to search.',
-      loading: 'Querying name API...',
-      empty: 'No results found for this search.',
-      unknown: 'Not informed',
-      found: function(total, query) { return `${total} result(s) found for "${query}".`; }
+      idle: 'Choose the type, type a value and click search.',
+      minChars: function(min, label) { return `Enter at least ${min} character(s) for ${label}.`; },
+      loading: function(label) { return `Querying API by ${label}...`; },
+      empty: 'No records found in RESULTADOS.',
+      rawIdle: 'Waiting for a search.',
+      found: function(total, query, label) { return `${total} record(s) found for ${label} "${query}".`; }
     },
     members: {
       stats: ['Total', 'Admins', 'Members'],
@@ -3459,64 +3502,128 @@ async function loadFinance() {
   syncFinancePolling();
 }
 
-function renderNameSearchSummary(rows) {
-  const list = Array.isArray(rows) ? rows : [];
-  const phones = list.reduce(function(sum, row) { return sum + Number(row && row.phone_count || 0); }, 0);
-  const emails = list.reduce(function(sum, row) { return sum + Number(row && row.email_count || 0); }, 0);
-  if (el('name-search-total')) el('name-search-total').textContent = String(list.length);
-  if (el('name-search-phones')) el('name-search-phones').textContent = String(phones);
-  if (el('name-search-emails')) el('name-search-emails').textContent = String(emails);
+function getNameSearchConfig(searchType) {
+  return NAME_SEARCH_TYPES[searchType] || NAME_SEARCH_TYPES.nome;
 }
 
-function renderNameSearchRows(rows) {
+function getNameSearchTypeLabel(searchType) {
+  const cfg = getNameSearchConfig(searchType);
+  const langKey = currentLang === 'en' ? 'en' : 'pt';
+  return String((cfg.labels && cfg.labels[langKey]) || searchType || 'nome');
+}
+
+function getNameSearchRows(rawPayload, fallbackRows) {
+  if (Array.isArray(fallbackRows) && fallbackRows.length) return fallbackRows;
+  if (Array.isArray(rawPayload)) return rawPayload;
+  if (rawPayload && typeof rawPayload === 'object' && Array.isArray(rawPayload.RESULTADOS)) return rawPayload.RESULTADOS;
+  return [];
+}
+
+function stringifyNameSearchPayload(payload) {
+  if (payload === null || typeof payload === 'undefined') return '';
+  if (typeof payload === 'string') return payload;
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch (e) {
+    return String(payload);
+  }
+}
+
+function getNameSearchPlaceholder(searchType) {
   const text = getUiText().nameSearch;
+  if (text && text.placeholderByType && text.placeholderByType[searchType]) {
+    return text.placeholderByType[searchType];
+  }
+  return 'Digite o valor para pesquisar';
+}
+
+function updateNameSearchTypeUI() {
+  const typeSelect = el('name-search-type');
+  const activeType = typeSelect ? String(typeSelect.value || nameSearchState.searchType || 'nome').toLowerCase() : (nameSearchState.searchType || 'nome');
+  const input = el('name-search-input');
+  if (input) input.placeholder = getNameSearchPlaceholder(activeType);
+}
+
+function renderNameSearchSummary(state) {
+  const current = state || nameSearchState;
+  const list = getNameSearchRows(current.raw, current.rows);
+  const jsonDump = stringifyNameSearchPayload(current.raw);
+  const sizeBytes = jsonDump ? (new Blob([jsonDump]).size || 0) : 0;
+  const sizeLabel = sizeBytes >= 1024 ? `${(sizeBytes / 1024).toFixed(1)} KB` : `${sizeBytes} B`;
+  if (el('name-search-total')) el('name-search-total').textContent = String(Number(current.total || list.length || 0));
+  if (el('name-search-records')) el('name-search-records').textContent = String(list.length);
+  if (el('name-search-json-size')) el('name-search-json-size').textContent = sizeLabel;
+}
+
+function renderNameSearchRows(state) {
+  const text = getUiText().nameSearch;
+  const current = state || nameSearchState;
   const tbody = el('name-search-body');
   if (!tbody) return;
   tbody.innerHTML = '';
-  const list = Array.isArray(rows) ? rows : [];
+  const list = getNameSearchRows(current.raw, current.rows);
   if (!list.length) {
-    const emptyLabel = nameSearchState.query ? text.empty : text.idle;
-    tbody.innerHTML = `<tr><td colspan="5" class="muted" style="padding:18px;text-align:center">${escHtml(emptyLabel)}</td></tr>`;
+    const emptyLabel = current.query ? text.empty : text.idle;
+    tbody.innerHTML = `<tr><td colspan="3" class="muted" style="padding:18px;text-align:center">${escHtml(emptyLabel)}</td></tr>`;
     return;
   }
-  list.forEach(function(row) {
-    const fullName = row && row.name ? String(row.name) : text.unknown;
-    const cpf = row && row.cpf ? String(row.cpf) : text.unknown;
-    const birthDate = row && row.birth_date ? String(row.birth_date).split(' ')[0] : text.unknown;
-    const mother = row && row.mother_name ? String(row.mother_name) : text.unknown;
-    const sex = row && row.sex ? String(row.sex) : text.unknown;
-    const addresses = Array.isArray(row && row.addresses) ? row.addresses : [];
-    const address = addresses[0] || (row && row.primary_address) || text.unknown;
-    const phones = Array.isArray(row && row.phones) ? row.phones : [];
-    const emails = Array.isArray(row && row.emails) ? row.emails : [];
-    const phoneLine = phones.length ? phones.slice(0, 2).map(escHtml).join('<br/>') : escHtml(text.unknown);
-    const emailLine = emails.length ? emails.slice(0, 2).map(escHtml).join('<br/>') : escHtml(text.unknown);
 
+  const typeLabel = getNameSearchTypeLabel(current.searchType);
+  const endpointLabel = current.endpoint ? `Endpoint: ${current.endpoint}` : '';
+  list.forEach(function(row, idx) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>
-        <div class="name-search-main">${escHtml(fullName)}</div>
-        <div class="name-search-sub">CPF: ${escHtml(cpf)}</div>
-      </td>
-      <td>
-        <div class="name-search-main">${escHtml(birthDate)}</div>
-        <div class="name-search-sub">${escHtml(mother)}</div>
-      </td>
-      <td>
-        <div class="name-search-main">${phoneLine}</div>
-        <div class="name-search-sub">${emailLine}</div>
-      </td>
-      <td><div class="name-search-sub">${escHtml(address)}</div></td>
-      <td><div class="name-search-main">${escHtml(sex)}</div></td>
-    `;
+
+    const idxTd = document.createElement('td');
+    const idxMain = document.createElement('div');
+    idxMain.className = 'name-search-main';
+    idxMain.textContent = `#${idx + 1}`;
+    idxTd.appendChild(idxMain);
+
+    const typeTd = document.createElement('td');
+    const typeMain = document.createElement('div');
+    typeMain.className = 'name-search-main';
+    typeMain.textContent = typeLabel;
+    typeTd.appendChild(typeMain);
+    if (endpointLabel) {
+      const typeSub = document.createElement('div');
+      typeSub.className = 'name-search-sub';
+      typeSub.textContent = endpointLabel;
+      typeTd.appendChild(typeSub);
+    }
+
+    const dataTd = document.createElement('td');
+    const pre = document.createElement('pre');
+    pre.className = 'name-search-json-snippet';
+    pre.textContent = stringifyNameSearchPayload(row);
+    dataTd.appendChild(pre);
+
+    tr.appendChild(idxTd);
+    tr.appendChild(typeTd);
+    tr.appendChild(dataTd);
     tbody.appendChild(tr);
   });
 }
 
+function renderNameSearchRawPayload(state) {
+  const text = getUiText().nameSearch;
+  const current = state || nameSearchState;
+  const rawNode = el('name-search-json');
+  if (!rawNode) return;
+  if (current.raw === null || typeof current.raw === 'undefined') {
+    rawNode.textContent = text.rawIdle;
+    return;
+  }
+  rawNode.textContent = stringifyNameSearchPayload(current.raw);
+}
+
 function loadNameSearch() {
   const text = getUiText().nameSearch;
-  renderNameSearchSummary(nameSearchState.rows);
-  renderNameSearchRows(nameSearchState.rows);
+  const typeSelect = el('name-search-type');
+  if (typeSelect) typeSelect.value = nameSearchState.searchType || 'nome';
+  updateNameSearchTypeUI();
+  renderNameSearchSummary(nameSearchState);
+  renderNameSearchRows(nameSearchState);
+  renderNameSearchRawPayload(nameSearchState);
   if (!nameSearchState.query && el('name-search-msg')) {
     showMsg('name-search-msg', text.idle, true);
   }
@@ -3525,33 +3632,74 @@ function loadNameSearch() {
 async function searchNames() {
   const text = getUiText().nameSearch;
   const input = el('name-search-input');
+  const typeSelect = el('name-search-type');
   const query = input ? String(input.value || '').trim() : '';
-  if (query.length < 2) {
-    showMsg('name-search-msg', text.minChars, false);
-    renderNameSearchSummary([]);
-    renderNameSearchRows([]);
+  const searchType = typeSelect ? String(typeSelect.value || 'nome').trim().toLowerCase() : 'nome';
+  const cfg = getNameSearchConfig(searchType);
+  const minChars = Number(cfg.minChars || 1);
+  const typeLabel = getNameSearchTypeLabel(searchType);
+
+  if (query.length < minChars) {
+    const msg = typeof text.minChars === 'function' ? text.minChars(minChars, typeLabel) : text.minChars;
+    showMsg('name-search-msg', msg, false);
+    renderNameSearchSummary({
+      query: query,
+      searchType: searchType,
+      rows: [],
+      raw: null,
+      endpoint: '',
+      source: '',
+      total: 0,
+    });
+    renderNameSearchRows({
+      query: query,
+      searchType: searchType,
+      rows: [],
+      raw: null,
+      endpoint: '',
+      source: '',
+      total: 0,
+    });
+    renderNameSearchRawPayload({ raw: null });
     return;
   }
-  showMsg('name-search-msg', text.loading, true);
+
+  const loadingText = typeof text.loading === 'function' ? text.loading(typeLabel) : text.loading;
+  showMsg('name-search-msg', loadingText, true);
+
   try {
-    const data = await api(`/api/name-search?nome=${encodeURIComponent(query)}`);
-    const rows = Array.isArray(data.results) ? data.results : [];
+    const data = await api(`/api/name-search?tipo=${encodeURIComponent(searchType)}&valor=${encodeURIComponent(query)}`);
+    const payload = Object.prototype.hasOwnProperty.call(data, 'raw') ? data.raw : data;
+    const rows = getNameSearchRows(payload, data.results);
     nameSearchState = {
       query: query,
+      searchType: searchType,
       rows: rows,
+      raw: payload,
+      endpoint: String(data.endpoint || ''),
       source: String(data.source || ''),
+      total: Number(data.total || rows.length || 0),
     };
-    renderNameSearchSummary(rows);
-    renderNameSearchRows(rows);
-    showMsg('name-search-msg', text.found(Number(data.total || rows.length), query), true);
+    renderNameSearchSummary(nameSearchState);
+    renderNameSearchRows(nameSearchState);
+    renderNameSearchRawPayload(nameSearchState);
+    const foundText = typeof text.found === 'function'
+      ? text.found(Number(nameSearchState.total || rows.length), query, typeLabel)
+      : `${rows.length}`;
+    showMsg('name-search-msg', foundText, true);
   } catch (e) {
     nameSearchState = {
       query: query,
+      searchType: searchType,
       rows: [],
+      raw: null,
+      endpoint: '',
       source: '',
+      total: 0,
     };
-    renderNameSearchSummary([]);
-    renderNameSearchRows([]);
+    renderNameSearchSummary(nameSearchState);
+    renderNameSearchRows(nameSearchState);
+    renderNameSearchRawPayload(nameSearchState);
     showMsg('name-search-msg', (currentLang === 'en' ? 'Search error: ' : 'Erro na busca: ') + e.message, false);
   }
 }
@@ -3559,14 +3707,29 @@ async function searchNames() {
 function clearNameSearch() {
   const text = getUiText().nameSearch;
   if (el('name-search-input')) el('name-search-input').value = '';
+  const typeSelect = el('name-search-type');
+  const searchType = typeSelect ? String(typeSelect.value || 'nome').trim().toLowerCase() : 'nome';
   nameSearchState = {
     query: '',
+    searchType: searchType,
     rows: [],
+    raw: null,
+    endpoint: '',
     source: '',
+    total: 0,
   };
-  renderNameSearchSummary([]);
-  renderNameSearchRows([]);
+  updateNameSearchTypeUI();
+  renderNameSearchSummary(nameSearchState);
+  renderNameSearchRows(nameSearchState);
+  renderNameSearchRawPayload(nameSearchState);
   showMsg('name-search-msg', text.idle, true);
+}
+
+function onNameSearchTypeChange() {
+  const typeSelect = el('name-search-type');
+  const selectedType = typeSelect ? String(typeSelect.value || 'nome').trim().toLowerCase() : 'nome';
+  nameSearchState.searchType = selectedType;
+  updateNameSearchTypeUI();
 }
 
 function fillPixelSettings(settings) {
@@ -4422,28 +4585,28 @@ const LANGS = {
     home_title:'Inicio',
     nav_overview:'Overview', nav_charts:'GrÃ¡ficos', nav_events:'Eventos',
     nav_reports:'RelatÃ³rios', nav_members:'Membros', nav_vault:'Cofre',
-    nav_goals:'Metas', nav_pixel:'PIXEL', nav_finance:'Financeiro', nav_name_search:'Pesquisa nomes', nav_settings:'ConfiguraÃ§Ãµes', nav_scheduler:'Agendador', nav_logs:'Logs',
+    nav_goals:'Metas', nav_pixel:'PIXEL', nav_finance:'Financeiro', nav_name_search:'Consultas API', nav_settings:'ConfiguraÃ§Ãµes', nav_scheduler:'Agendador', nav_logs:'Logs',
     scheduler_title:'Agendador de Mensagens', sched_queue:'Fila de Mensagens',
     sched_empty:'Nenhuma mensagem agendada.',
     btn_schedule:'Agendar', btn_clear_logs:'Limpar',
     col_message:'Mensagem', col_date:'Data/Hora', col_status:'Status', col_action:'AÃ§Ã£o',
     logs_title:'Log do Bot em Tempo Real', logs_empty:'Aguardando logs do bot...',
     overview_title:'Overview', charts_title:'GrÃ¡ficos', events_title:'Eventos',
-    reports_title:'RelatÃ³rios', goals_title:'Metas', pixel_title:'PIXEL', finance_title:'Financeiro', 'name-search_title':'Pesquisa nomes', members_title:'Membros', vault_title:'Cofre',
+    reports_title:'RelatÃ³rios', goals_title:'Metas', pixel_title:'PIXEL', finance_title:'Financeiro', 'name-search_title':'Consultas API', members_title:'Membros', vault_title:'Cofre',
     settings_title:'ConfiguraÃ§Ãµes', scheduler_page:'Agendador', logs_page:'Logs',
   },
   'en': {
     home_title:'Home',
     nav_overview:'Overview', nav_charts:'Charts', nav_events:'Events',
     nav_reports:'Reports', nav_members:'Members', nav_vault:'Vault',
-    nav_goals:'Goals', nav_pixel:'PIXEL', nav_finance:'Finance', nav_name_search:'Name search', nav_settings:'Settings', nav_scheduler:'Scheduler', nav_logs:'Logs',
+    nav_goals:'Goals', nav_pixel:'PIXEL', nav_finance:'Finance', nav_name_search:'API lookups', nav_settings:'Settings', nav_scheduler:'Scheduler', nav_logs:'Logs',
     scheduler_title:'Message Scheduler', sched_queue:'Message Queue',
     sched_empty:'No scheduled messages.',
     btn_schedule:'Schedule', btn_clear_logs:'Clear',
     col_message:'Message', col_date:'Date/Time', col_status:'Status', col_action:'Action',
     logs_title:'Bot Log (Live)', logs_empty:'Waiting for bot logs...',
     overview_title:'Overview', charts_title:'Charts', events_title:'Events',
-    reports_title:'Reports', goals_title:'Goals', pixel_title:'PIXEL', finance_title:'Finance', 'name-search_title':'Name search', members_title:'Members', vault_title:'Vault',
+    reports_title:'Reports', goals_title:'Goals', pixel_title:'PIXEL', finance_title:'Finance', 'name-search_title':'API lookups', members_title:'Members', vault_title:'Vault',
     settings_title:'Settings', scheduler_page:'Scheduler', logs_page:'Logs',
   }
 };
@@ -4730,10 +4893,22 @@ function localizeStaticSections() {
   setText('#name-search-side-title', text.nameSearch.sideTitle);
   setText('#name-search-side-copy', text.nameSearch.sideCopy);
   setText('#name-search-total-label', text.nameSearch.stats.total);
-  setText('#name-search-phones-label', text.nameSearch.stats.phones);
-  setText('#name-search-emails-label', text.nameSearch.stats.emails);
+  setText('#name-search-records-label', text.nameSearch.stats.records);
+  setText('#name-search-json-size-label', text.nameSearch.stats.jsonSize);
   setText('#name-search-table-title', text.nameSearch.tableTitle);
-  setPlaceholder('#name-search-input', text.nameSearch.placeholder);
+  setText('#name-search-json-title', text.nameSearch.rawTitle);
+  const nameSearchTypeSelect = el('name-search-type');
+  if (nameSearchTypeSelect && text.nameSearch.searchTypes) {
+    Array.from(nameSearchTypeSelect.options).forEach(function(option) {
+      if (typeof text.nameSearch.searchTypes[option.value] !== 'undefined') {
+        option.textContent = text.nameSearch.searchTypes[option.value];
+      }
+    });
+  }
+  if (!nameSearchState.query && (nameSearchState.raw === null || typeof nameSearchState.raw === 'undefined')) {
+    setText('#name-search-json', text.nameSearch.rawIdle);
+  }
+  updateNameSearchTypeUI();
   setButtonLabel('#name-search-btn', text.nameSearch.buttons.search);
   setButtonLabel('#name-search-clear-btn', text.nameSearch.buttons.clear);
   document.querySelectorAll('#view-name-search thead th').forEach(function(th, idx) {
@@ -5666,6 +5841,7 @@ window.createFinancePayment = createFinancePayment;
 window.refreshFinancePayment = refreshFinancePayment;
 window.searchNames = searchNames;
 window.clearNameSearch = clearNameSearch;
+window.onNameSearchTypeChange = onNameSearchTypeChange;
 
 startSSE = function() {
   if (_sseSource) return;

@@ -8246,6 +8246,10 @@ textarea:focus-visible {
   gap: 10px;
 }
 
+#view-name-search .members-actions .select-wrap {
+  min-width: 148px;
+}
+
 #view-members .table-wrap,
 #view-name-search .table-wrap,
 #view-settings .settings-section,
@@ -8274,6 +8278,27 @@ textarea:focus-visible {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.name-search-json-snippet,
+.name-search-json-full {
+  margin: 0;
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.name-search-json-snippet {
+  color: var(--text);
+}
+
+.name-search-json-full {
+  padding: 16px 18px 18px;
+  max-height: 560px;
+  overflow: auto;
+  color: var(--text);
 }
 
 .settings-hero {

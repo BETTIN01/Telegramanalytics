@@ -1811,11 +1811,35 @@ def finance_pixgo_webhook():
 
 @api_bp.get("/name-search")
 def name_search():
-    raw_name = (request.args.get("nome") or "").strip()
-    if len(raw_name) < 2:
+    search_map = {
+        "nome": {"path": "/api/busca_nome.php", "param": "nome"},
+        "cpf": {"path": "/api/busca_cpf.php", "param": "cpf"},
+        "titulo": {"path": "/api/busca_titulo.php", "param": "titulo"},
+        "mae": {"path": "/api/busca_mae.php", "param": "mae"},
+        "pai": {"path": "/api/busca_pai.php", "param": "pai"},
+        "rg": {"path": "/api/busca_rg.php", "param": "rg"},
+    }
+
+    search_type = (request.args.get("tipo") or request.args.get("type") or "nome").strip().lower()
+    search_cfg = search_map.get(search_type)
+    if not search_cfg:
+        return jsonify({
+            "ok": False,
+            "msg": "Tipo de consulta invalido. Use: nome, cpf, titulo, mae, pai ou rg.",
+        }), 400
+
+    raw_value = (
+        request.args.get("valor")
+        or request.args.get(search_cfg["param"])
+        or ""
+    ).strip()
+    if not raw_value:
+        return jsonify({"ok": False, "msg": "Informe um valor para pesquisar."}), 400
+
+    if search_type in {"nome", "mae", "pai"} and len(raw_value) < 2:
         return jsonify({"ok": False, "msg": "Informe ao menos 2 caracteres para pesquisar."}), 400
 
-    target_url = f"http://apisbrasilpro.site/api/busca_nome.php?nome={quote_plus(raw_name)}"
+    target_url = f"http://apisbrasilpro.site{search_cfg['path']}?{search_cfg['param']}={quote_plus(raw_value)}"
     req = Request(target_url, headers={
         "User-Agent": "TelegramAnalytics/2026.04",
         "Accept": "application/json, text/plain, */*",
@@ -1826,80 +1850,26 @@ def name_search():
     except Exception as err:
         return jsonify({"ok": False, "msg": f"Falha ao consultar API externa: {err}"}), 502
 
-    payload = None
+    decoded = None
     for encoding in ("utf-8", "latin-1"):
         try:
-            payload = json.loads(raw_body.decode(encoding))
+            decoded = raw_body.decode(encoding)
             break
         except Exception:
             continue
-    if payload is None:
-        return jsonify({"ok": False, "msg": "Resposta invalida da API externa."}), 502
+
+    if decoded is None:
+        decoded = raw_body.decode("utf-8", "replace")
+
+    payload = None
+    try:
+        payload = json.loads(decoded)
+    except Exception:
+        payload = decoded
 
     raw_results = payload.get("RESULTADOS") if isinstance(payload, dict) else payload
     if not isinstance(raw_results, list):
         raw_results = []
-
-    def _fmt_phone(item):
-        if not isinstance(item, dict):
-            return ""
-        ddd = str(item.get("DDD") or "").strip()
-        num = str(item.get("TELEFONE") or "").strip()
-        if ddd and num:
-            return f"({ddd}) {num}"
-        return num
-
-    def _fmt_address(item):
-        if not isinstance(item, dict):
-            return ""
-        pieces = []
-        for key in ("LOGR_TIPO", "LOGR_NOME", "LOGR_NUMERO"):
-            value = str(item.get(key) or "").strip()
-            if value and value.upper() != "NULL":
-                pieces.append(value)
-        base = " ".join(pieces).strip()
-        city = str(item.get("CIDADE") or "").strip()
-        uf = str(item.get("UF") or "").strip()
-        city_uf = f"{city}/{uf}" if city and uf else city or uf
-        if base and city_uf:
-            return f"{base} - {city_uf}"
-        return base or city_uf
-
-    normalized = []
-    for entry in raw_results[:120]:
-        if not isinstance(entry, dict):
-            continue
-        dados = entry.get("DADOS") if isinstance(entry.get("DADOS"), dict) else {}
-        phones = entry.get("TELEFONE") if isinstance(entry.get("TELEFONE"), list) else []
-        emails = entry.get("EMAIL") if isinstance(entry.get("EMAIL"), list) else []
-        addresses = entry.get("ENDERECOS") if isinstance(entry.get("ENDERECOS"), list) else []
-
-        phone_values = [v for v in (_fmt_phone(p) for p in phones) if v]
-        email_values = [
-            str(item.get("EMAIL") or "").strip()
-            for item in emails
-            if isinstance(item, dict) and str(item.get("EMAIL") or "").strip()
-        ]
-        address_values = [v for v in (_fmt_address(a) for a in addresses) if v]
-
-        normalized.append({
-            "contatos_id": str(dados.get("CONTATOS_ID") or "").strip(),
-            "name": str(dados.get("NOME") or "").strip(),
-            "cpf": str(dados.get("CPF") or "").strip(),
-            "birth_date": str(dados.get("NASC") or "").strip(),
-            "mother_name": str(dados.get("NOME_MAE") or "").strip(),
-            "father_name": str(dados.get("NOME_PAI") or "").strip(),
-            "sex": str(dados.get("SEXO") or "").strip(),
-            "phones": phone_values[:6],
-            "emails": email_values[:6],
-            "addresses": address_values[:4],
-            "phone_count": len(phone_values),
-            "email_count": len(email_values),
-            "address_count": len(address_values),
-            "primary_phone": phone_values[0] if phone_values else "",
-            "primary_email": email_values[0] if email_values else "",
-            "primary_address": address_values[0] if address_values else "",
-        })
 
     source = ""
     if isinstance(payload, dict):
@@ -1907,10 +1877,15 @@ def name_search():
 
     return jsonify({
         "ok": True,
-        "query": raw_name,
-        "total": len(normalized),
-        "results": normalized,
+        "query": raw_value,
+        "search_type": search_type,
+        "search_param": search_cfg["param"],
+        "endpoint": search_cfg["path"],
+        "target_url": target_url,
+        "total": len(raw_results),
+        "results": raw_results,
         "source": source,
+        "raw": payload,
     })
 
 

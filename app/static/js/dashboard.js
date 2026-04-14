@@ -966,6 +966,13 @@ const UI_COPY = {
       structuredOverviewTitle: 'Resumo da consulta',
       structuredRootSummary: 'JSON bruto completo estruturado',
       structuredRootKey: 'ROOT',
+      structuredFlatTitle: 'Tabela completa de campos (caminho -> valor)',
+      structuredFlatCount: function(total) { return `${total} linha(s) estruturada(s)`; },
+      structuredFlatHeaders: {
+        path: 'Caminho',
+        type: 'Tipo',
+        value: 'Valor'
+      },
       rawTitle: 'JSON completo retornado pela API',
       rawSummary: 'Abrir JSON bruto completo',
       recordRawSummary: 'Ver todos os campos deste registro',
@@ -1531,6 +1538,13 @@ const UI_COPY = {
       structuredOverviewTitle: 'Query summary',
       structuredRootSummary: 'Fully structured raw JSON',
       structuredRootKey: 'ROOT',
+      structuredFlatTitle: 'Complete field table (path -> value)',
+      structuredFlatCount: function(total) { return `${total} structured row(s)`; },
+      structuredFlatHeaders: {
+        path: 'Path',
+        type: 'Type',
+        value: 'Value'
+      },
       rawTitle: 'Full raw JSON response',
       rawSummary: 'Open full raw JSON',
       recordRawSummary: 'Show every field from this record',
@@ -3825,6 +3839,108 @@ function createNameSearchStructuredMetaLine(label, value) {
   return line;
 }
 
+function getNameSearchNodePath(parentPath, key) {
+  const keyText = String(key);
+  if (!parentPath) return keyText;
+  if (keyText.startsWith('[')) return `${parentPath}${keyText}`;
+  return `${parentPath}.${keyText}`;
+}
+
+function getNameSearchNodeValueSummary(value, nodeTypes) {
+  const kind = getNameSearchNodeKind(value);
+  if (kind === 'object') return Object.keys(value).length ? getNameSearchNodeMeta(value, nodeTypes) : '{}';
+  if (kind === 'array') return value.length ? getNameSearchNodeMeta(value, nodeTypes) : '[]';
+  return stringifyNameSearchLeafValue(value);
+}
+
+function collectNameSearchStructuredRows(key, value, parentPath, text, rows) {
+  const nodeTypes = text.nodeTypes || {};
+  const kind = getNameSearchNodeKind(value);
+  const path = getNameSearchNodePath(parentPath, key);
+
+  rows.push({
+    path: path,
+    type: nodeTypes[kind] || kind,
+    value: getNameSearchNodeValueSummary(value, nodeTypes),
+  });
+
+  if (kind === 'array') {
+    value.forEach(function(item, idx) {
+      collectNameSearchStructuredRows(`[${idx}]`, item, path, text, rows);
+    });
+    return;
+  }
+
+  if (kind === 'object') {
+    Object.keys(value).forEach(function(childKey) {
+      collectNameSearchStructuredRows(childKey, value[childKey], path, text, rows);
+    });
+  }
+}
+
+function buildNameSearchStructuredTableCard(rows, text) {
+  const headers = text.structuredFlatHeaders || {};
+  const countText = typeof text.structuredFlatCount === 'function'
+    ? text.structuredFlatCount(rows.length)
+    : `${rows.length}`;
+
+  const card = document.createElement('div');
+  card.className = 'name-search-structured-card';
+
+  const title = document.createElement('div');
+  title.className = 'name-search-structured-title';
+  title.textContent = text.structuredFlatTitle || 'Tabela completa de campos (caminho -> valor)';
+  card.appendChild(title);
+
+  const countLine = document.createElement('div');
+  countLine.className = 'name-search-structured-meta';
+  countLine.textContent = countText;
+  card.appendChild(countLine);
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'name-search-flat-wrap';
+
+  const table = document.createElement('table');
+  table.className = 'name-search-flat-table';
+
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th>${escHtml(headers.path || 'Path')}</th>
+      <th>${escHtml(headers.type || 'Type')}</th>
+      <th>${escHtml(headers.value || 'Value')}</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  rows.forEach(function(row) {
+    const tr = document.createElement('tr');
+
+    const pathTd = document.createElement('td');
+    pathTd.className = 'name-search-flat-path';
+    pathTd.textContent = row.path;
+    tr.appendChild(pathTd);
+
+    const typeTd = document.createElement('td');
+    typeTd.className = 'name-search-flat-type';
+    typeTd.textContent = row.type;
+    tr.appendChild(typeTd);
+
+    const valueTd = document.createElement('td');
+    valueTd.className = 'name-search-flat-value';
+    valueTd.textContent = row.value;
+    tr.appendChild(valueTd);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  tableWrap.appendChild(table);
+  card.appendChild(tableWrap);
+  return card;
+}
+
 function buildNameSearchTreeNode(key, value, depth, text) {
   const nodeTypes = text.nodeTypes || {};
   const kind = getNameSearchNodeKind(value);
@@ -3939,6 +4055,10 @@ function renderNameSearchStructuredPayload(state) {
   treeCard.appendChild(treeRoot);
 
   container.appendChild(treeCard);
+
+  const flatRows = [];
+  collectNameSearchStructuredRows(rootKey, current.raw, '', text, flatRows);
+  container.appendChild(buildNameSearchStructuredTableCard(flatRows, text));
 }
 
 function renderNameSearchRawPayload(state) {

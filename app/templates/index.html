@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Painel HOT</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/pepper-favicon.svg?v=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/dashboard.css?v={{ asset_version }}"/>
+  <link rel="stylesheet" href="/static/css/hot-panel.css?v={{ asset_version }}"/>
+  <link rel="stylesheet" href="/static/css/dashboard-premium-r20260402.css?v={{ asset_version }}"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+<body data-auth-user-id="{{ auth_user.id }}">
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+<div id="live-notification-stack" class="live-notification-stack" aria-live="polite" aria-atomic="false"></div>
+<div class="topbar-notifications-backdrop" id="topbar-notifications-backdrop" aria-hidden="true" hidden onclick="closeNotificationsDrawer()"></div>
+<div class="topbar-notifications-panel" id="topbar-notifications-panel" aria-hidden="true">
+  <div class="topbar-notifications-panel-head">
+    <div>
+      <strong>Notificacoes</strong>
+      <small id="notifications-panel-total">0 alertas</small>
+    </div>
+    <button type="button" class="topbar-notifications-clear" onclick="clearNotifications()">Limpar</button>
+  </div>
+  <div class="topbar-notifications-list" id="notifications-panel-list"></div>
+</div>
+
+<!-- ALERT BANNER -->
+<div id="alert-banner" class="alert-banner" style="display:none"></div>
+
+<div class="layout" id="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        </div>
+        <span class="logo-text">Notificacoes</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Fechar notificacoes" onclick="closeNotificationsDrawer()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item active" data-view="overview" href="#" data-tooltip="Overview">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/><rect x="2" y="13" width="9" height="9" rx="1"/></svg></span>
+        <span class="nav-label" data-i18n="nav_overview">Overview</span>
+      </a>
+      <a class="nav-item" data-view="charts" href="#" data-tooltip="Graficos">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+        <span class="nav-label" data-i18n="nav_charts">Gráficos</span>
+      </a>
+      <a class="nav-item" data-view="events" href="#" data-tooltip="Eventos">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
+        <span class="nav-label" data-i18n="nav_events">Eventos</span>
+      </a>
+      <a class="nav-item" data-view="reports" href="#" data-tooltip="Relatorios">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+        <span class="nav-label" data-i18n="nav_reports">Relatórios</span>
+      </a>
+      <a class="nav-item" data-view="goals" href="#" data-tooltip="Metas">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg></span>
+        <span class="nav-label" data-i18n="nav_goals">Metas</span>
+      </a>
+      <a class="nav-item" data-view="members" href="#" data-tooltip="Membros">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></span>
+        <span class="nav-label" data-i18n="nav_members">Membros</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-item" data-view="vault" href="#" data-tooltip="Cofre">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></span>
+        <span class="nav-label" data-i18n="nav_vault">Cofre</span>
+      </a>
+      <a class="nav-item" data-view="scheduler" href="#" data-tooltip="Agendador">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="12 14 12 18 15 18"/></svg></span>
+        <span class="nav-label" data-i18n="nav_scheduler">Agendador</span>
+      </a>
+      <a class="nav-item" data-view="logs" href="#" data-tooltip="Logs">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+        <span class="nav-label" data-i18n="nav_logs">Logs</span>
+      </a>
+      <a class="nav-item" data-view="settings" href="#" data-tooltip="Configuracoes">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+        <span class="nav-label" data-i18n="nav_settings">Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="bot-status" class="bot-st">...</div>
+      <span id="last-refresh" class="refresh-time"></span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-brand-ribbon">
+          <span class="topbar-brand-ribbon-dot"></span>
+          <span class="topbar-brand-ribbon-copy">
+            <strong>
+              Painel HOT
+              <span class="brand-pepper" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M14.3 3.2c-.5 1.2-1.5 2.1-3 2.7" stroke="#7dd3fc" stroke-width="1.8" stroke-linecap="round"/>
+                  <path d="M14.8 6.3c3 0 5.7 2.2 5.7 5.7 0 5.1-4.1 8.8-8.7 8.8-3.7 0-6.3-2.5-6.3-5.9 0-3.4 2.6-6.4 5.9-6.9.9-1.6 2-2.6 3.4-1.7Z" fill="#fb7185"/>
+                  <path d="M10.5 8.6c.7-.2 1.5-.3 2.3-.3 2.6 0 4.8 1.7 4.8 4.3 0 3.8-3 6.4-6.1 6.4-2.4 0-4.1-1.6-4.1-3.8 0-2.7 1.9-5.2 4.6-6.6Z" fill="#ef4444"/>
+                  <path d="M14 3.2c.9-.9 2.3-1.4 3.8-1.2" stroke="#86efac" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </span>
+            </strong>
+            <small>Monitoramento, membros e financeiro em tempo real</small>
+          </span>
+        </div>
+      </div>
+      <div class="topbar-center">
+        <div class="topbar-actions topbar-actions--main">
+          <button class="btn-icon topbar-btn" id="lang-toggle" onclick="toggleLang()" title="Idioma">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span id="lang-label">PT</span>
+          </button>
+          <button class="btn-icon topbar-btn" id="theme-toggle" onclick="toggleTheme()" title="Tema">
+            <svg id="theme-icon-dark" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg id="theme-icon-light" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+          <button type="button" class="btn-icon topbar-btn topbar-btn--notify" id="notifications-toggle" onclick="toggleNotificationsDrawer(event)" title="Notificacoes" aria-label="Notificacoes" aria-expanded="false">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+            <span class="topbar-notify-badge" id="topbar-notifications-total">0</span>
+          </button>
+          <button type="button" class="btn-icon topbar-btn" id="topbar-refresh-btn" onclick="manualRefresh()" title="Atualizar agora">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10M1 14l5.36 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-context">
+          <div class="select-wrap">
+            <select id="group-select"></select>
+          </div>
+        </div>
+        <div class="topbar-user-menu-wrap" id="topbar-user-menu-wrap">
+          <button class="topbar-user-trigger" id="current-user-trigger" type="button" onclick="toggleUserMenu()">
+            <span class="topbar-user-avatar" id="current-user-avatar">{{ (auth_user.display_name or auth_user.username or 'A')[0]|upper }}</span>
+            <span class="topbar-user-copy">
+              <span class="topbar-user-name" id="current-user-name">{{ auth_user.display_name or auth_user.username }}</span>
+              <span class="topbar-user-role" id="current-user-role">{{ 'Administrador' if auth_user.role == 'admin' else 'Usuario' }}</span>
+            </span>
+          </button>
+          <div class="topbar-user-dropdown" id="topbar-user-dropdown">
+            <div class="topbar-user-dropdown-head">
+              <strong id="current-user-dropdown-role">{{ 'Administrador' if auth_user.role == 'admin' else 'Usuario' }}</strong>
+              <span>@{{ auth_user.username }}</span>
+            </div>
+            <a class="topbar-user-dropdown-item" href="/logout">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span id="logout-label">Sair</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="content-scenery" aria-hidden="true">
+        <span class="content-orb content-orb--one"></span>
+        <span class="content-orb content-orb--two"></span>
+        <span class="content-grid"></span>
+      </div>
+      <div class="view-rail" id="view-rail">
+        <div class="view-rail-label">Telas</div>
+        <div class="view-rail-track" id="view-rail-track">
+          <button type="button" class="view-chip active" data-view="home">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></span>
+            <span class="view-chip-label" data-i18n="home_title">Inicio</span>
+          </button>
+          <button type="button" class="view-chip" data-view="overview">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/><rect x="2" y="13" width="9" height="9" rx="1"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_overview">Overview</span>
+          </button>
+          <button type="button" class="view-chip" data-view="charts">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_charts">Graficos</span>
+          </button>
+          <button type="button" class="view-chip" data-view="events">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_events">Eventos</span>
+          </button>
+          <button type="button" class="view-chip" data-view="reports">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_reports">Relatorios</span>
+          </button>
+          <button type="button" class="view-chip" data-view="goals">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_goals">Metas</span>
+          </button>
+          <button type="button" class="view-chip" data-view="pixel">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M4 5h7v7H4z"/><path d="M13 12h7v7h-7z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M11 8l3 3"/><path d="M10 14l4-4"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_pixel">PIXEL</span>
+          </button>
+          <button type="button" class="view-chip" data-view="finance">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 12h4"/><path d="M15 15h2"/><path d="M17 9h2"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_finance">Financeiro</span>
+          </button>
+          <button type="button" class="view-chip" data-view="members">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_members">Membros</span>
+          </button>
+          <button type="button" class="view-chip" data-view="vault">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_vault">Cofre</span>
+          </button>
+          <button type="button" class="view-chip" data-view="scheduler">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="12 14 12 18 15 18"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_scheduler">Agendador</span>
+          </button>
+          <button type="button" class="view-chip" data-view="logs">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_logs">Logs</span>
+          </button>
+          <button type="button" class="view-chip" data-view="settings">
+            <span class="view-chip-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+            <span class="view-chip-label" data-i18n="nav_settings">Configuracoes</span>
+          </button>
+        </div>
+      </div>
+      <div class="page-breadcrumb-row">
+        <div class="breadcrumb">
+          <span class="breadcrumb-root">Painel HOT</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          <span id="page-title">Inicio</span>
+        </div>
+      </div>
+
+      <!-- HOME -->
+      <section id="view-home" class="view active">
+        <div class="home-hero">
+          <div class="home-hero-copy">
+            <div class="home-welcome" id="home-welcome">Bem-vindo, {{ auth_user.display_name or auth_user.username }}</div>
+            <span class="home-kicker" id="home-kicker">Dashboard de navegacao</span>
+            <h1 id="home-title">Escolha sua area de navegacao</h1>
+            <div class="home-hero-meta">
+              <div class="home-stat-pill">
+                <span id="home-group-label">Grupo ativo</span>
+                <strong id="home-active-group">Selecione um grupo</strong>
+              </div>
+              <div class="home-stat-pill">
+                <span id="home-groups-label">Grupos monitorados</span>
+                <strong id="home-groups-count">0</strong>
+              </div>
+              <div class="home-stat-pill">
+                <span id="home-events-label">Eventos totais</span>
+                <strong id="home-events-count">-</strong>
+              </div>
+              <div class="home-stat-pill">
+                <span id="home-members-label">Membros base</span>
+                <strong id="home-members-count">-</strong>
+              </div>
+            </div>
+            <div class="home-hero-meta home-hero-meta--finance">
+              <div class="home-finance-source" id="home-finance-source">Base financeira: PRIVATE - Hot Casais Plus 🔞</div>
+              <div class="home-stat-pill">
+                <span id="home-finance-total-label">Faturamento total</span>
+                <strong id="home-finance-total">R$ 0,00</strong>
+              </div>
+              <div class="home-stat-pill">
+                <span id="home-finance-24h-label">Transacoes ultimas 24h</span>
+                <strong id="home-finance-24h">0</strong>
+              </div>
+              <div class="home-stat-pill">
+                <span id="home-finance-approved-24h-label">Finalizadas 24h</span>
+                <strong id="home-finance-approved-24h">0</strong>
+              </div>
+              <div class="home-stat-pill">
+                <span id="home-finance-week-label">Finalizadas na semana</span>
+                <strong id="home-finance-week">0</strong>
+              </div>
+            </div>
+          </div>
+          <div class="home-export-card home-export-card--transactions">
+            <div class="home-export-header" id="home-transactions-header">Ultimas transacoes</div>
+            <div class="home-finance-source" id="home-transactions-source">Base financeira: PRIVATE - Hot Casais Plus 🔞</div>
+            <div class="home-transactions-list" id="home-transactions-list">
+              <div class="home-transaction-empty" id="home-transactions-empty">Nenhuma transacao recente encontrada.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="launch-grid">
+          <button type="button" class="launch-card" data-view="overview">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/><rect x="2" y="13" width="9" height="9" rx="1"/></svg></span>
+            <span class="launch-card-kicker">Monitoramento</span>
+            <strong>Overview</strong>
+            <p>Indicadores principais, insight rapido e atividade recente.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="charts">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+            <span class="launch-card-kicker">Analise</span>
+            <strong>Graficos</strong>
+            <p>Series temporais com entradas, saidas e crescimento do grupo.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="events">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
+            <span class="launch-card-kicker">Auditoria</span>
+            <strong>Eventos</strong>
+            <p>Consulte a fila completa de entradas e saidas por usuario.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="reports">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+            <span class="launch-card-kicker">Resumo</span>
+            <strong>Relatorios</strong>
+            <p>Semanal, mensal e anomalias consolidadas do grupo.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="goals">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg></span>
+            <span class="launch-card-kicker">Planejamento</span>
+            <strong>Metas</strong>
+            <p>Defina objetivos por grupo e acompanhe a execucao em tempo real.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="pixel">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 5h7v7H4z"/><path d="M13 12h7v7h-7z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M11 8l3 3"/><path d="M10 14l4-4"/></svg></span>
+            <span class="launch-card-kicker">Meta</span>
+            <strong>PIXEL</strong>
+            <p>Conecte o Pixel da Meta, acompanhe campanhas, cliques e leads em um unico painel.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="finance">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M7 12h4"/><path d="M15 15h2"/><path d="M17 9h2"/></svg></span>
+            <span class="launch-card-kicker">Recebimentos</span>
+            <strong>Financeiro</strong>
+            <p>Crie cobrancas PIX, acompanhe status e consolide pagamentos por grupo.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="members">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></span>
+            <span class="launch-card-kicker">Base</span>
+            <strong>Membros</strong>
+            <p>Veja admins, membros comuns e sincronize a base do Telegram.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="vault">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></span>
+            <span class="launch-card-kicker">Seguranca</span>
+            <strong>Cofre</strong>
+            <p>Acesse categorias e entradas seguras vinculadas ao projeto.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="scheduler">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="12 14 12 18 15 18"/></svg></span>
+            <span class="launch-card-kicker">Automacao</span>
+            <strong>Agendador</strong>
+            <p>Crie e acompanhe mensagens agendadas por grupo.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="logs">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+            <span class="launch-card-kicker">Diagnostico</span>
+            <strong>Logs</strong>
+            <p>Monitore o comportamento do bot e investigue ocorrencias.</p>
+          </button>
+          <button type="button" class="launch-card" data-view="settings">
+            <span class="launch-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+            <span class="launch-card-kicker">Controle</span>
+            <strong>Configuracoes</strong>
+            <p>Gerencie token, grupos monitorados e operacao do bot.</p>
+          </button>
+        </div>
+      </section>
+
+      <!-- OVERVIEW -->
+      <section id="view-overview" class="view">
+        <!-- SKELETON CARDS -->
+        <div class="cards" id="skeleton-cards">
+          <div class="card skel"><div class="skel-line skel-sm"></div><div class="skel-line skel-lg"></div></div>
+          <div class="card skel"><div class="skel-line skel-sm"></div><div class="skel-line skel-lg"></div></div>
+          <div class="card skel"><div class="skel-line skel-sm"></div><div class="skel-line skel-lg"></div></div>
+          <div class="card skel"><div class="skel-line skel-sm"></div><div class="skel-line skel-lg"></div></div>
+        </div>
+        <div class="cards" id="real-cards" style="display:none">
+          <div class="card card--green">
+            <div class="card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+            <div class="card-label">Entradas</div>
+            <div class="card-value" id="c-joins">–</div>
+          </div>
+          <div class="card card--red">
+            <div class="card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div>
+            <div class="card-label">Saídas</div>
+            <div class="card-value" id="c-leaves">–</div>
+          </div>
+          <div class="card card--blue">
+            <div class="card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
+            <div class="card-label">Crescimento</div>
+            <div class="card-value" id="c-net">–</div>
+          </div>
+          <div class="card card--yellow">
+            <div class="card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="card-label">Churn</div>
+            <div class="card-value" id="c-churn">–</div>
+          </div>
+        </div>
+        <div class="overview-meta" id="overview-meta">
+          <div class="meta-pill"><span class="meta-label">Primeiro evento</span><strong id="meta-first">â€“</strong></div>
+          <div class="meta-pill"><span class="meta-label">Ultimo evento</span><strong id="meta-last">â€“</strong></div>
+          <div class="meta-pill"><span class="meta-label">Membros base</span><strong id="meta-members">â€“</strong></div>
+          <div class="meta-pill"><span class="meta-label">Admins</span><strong id="meta-admins">â€“</strong></div>
+        </div>
+        <div class="overview-export-panel">
+          <div class="overview-export-head">
+            <div>
+              <span class="home-kicker">Exportacao inteligente</span>
+              <h3>PDF e CSV com filtros</h3>
+              <p>Escolha o periodo, marque os blocos que devem entrar e gere um relatorio mais completo da operacao.</p>
+            </div>
+            <div class="overview-export-actions">
+              <button class="btn-secondary" onclick="exportCSV()">Exportar CSV</button>
+              <button class="btn-primary" onclick="exportPDF()">Exportar PDF</button>
+            </div>
+          </div>
+          <div class="overview-export-grid">
+            <label class="goal-field">
+              <span>Data inicial</span>
+              <input id="overview-export-start" type="date"/>
+            </label>
+            <label class="goal-field">
+              <span>Data final</span>
+              <input id="overview-export-end" type="date"/>
+            </label>
+            <div class="overview-export-group">
+              <span>Grupo selecionado</span>
+              <strong id="overview-export-group">Selecione um grupo</strong>
+            </div>
+          </div>
+          <div class="overview-export-checks">
+            <label><input id="overview-section-overview" type="checkbox" checked/> Overview</label>
+            <label><input id="overview-section-charts" type="checkbox" checked/> Graficos</label>
+            <label><input id="overview-section-events" type="checkbox" checked/> Eventos</label>
+            <label><input id="overview-section-members" type="checkbox" checked/> Membros</label>
+            <label><input id="overview-section-finance" type="checkbox" checked/> Financeiro</label>
+            <label><input id="overview-section-campaigns" type="checkbox" checked/> Campanhas</label>
+            <label><input id="overview-section-pixel" type="checkbox" checked/> Pixel</label>
+          </div>
+          <div class="overview-export-note">Os filtros desta area passam a valer para os arquivos exportados pela Overview e pelos downloads imediatos.</div>
+        </div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Insights
+            </div>
+            <div class="panel-body"><ul id="insights"></ul></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Feed Recente
+            </div>
+            <div class="panel-body"><ul id="feed"></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHARTS -->
+      <section id="view-charts" class="view">
+        <div class="chart-wrap"><div class="chart-title">Entradas e Saídas</div><div style="height:240px"><canvas id="chart-line"></canvas></div></div>
+        <div class="chart-wrap"><div class="chart-title">Crescimento Líquido</div><div style="height:200px"><canvas id="chart-bar"></canvas></div></div>
+        <div class="chart-wrap"><div class="chart-title">Membros Estimados</div><div style="height:200px"><canvas id="chart-area"></canvas></div></div>
+      </section>
+
+      <!-- EVENTS -->
+      <section id="view-events" class="view">
+        <div class="table-wrap">
+          <div class="table-title table-title--split">
+            <span>Eventos</span>
+            <div class="table-tools">
+              <div class="search-wrap search-wrap--compact">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="event-search" type="text" placeholder="Buscar usuario ou @..." spellcheck="false" oninput="filterEvents();toggleEventSearchClear()"/>
+                <button type="button" class="search-clear" id="event-search-clear" onclick="clearEventSearch()" aria-label="Limpar busca">x</button>
+              </div>
+              <select id="event-type-filter" onchange="filterEvents()">
+                <option value="all">Todos</option>
+                <option value="join">Entradas</option>
+                <option value="leave">Saidas</option>
+              </select>
+            </div>
+          </div>
+          <table><thead><tr><th>#</th><th>Usuário</th><th>Tipo</th><th>Data</th></tr></thead><tbody id="ev-body"></tbody></table>
+          <div id="pagination" class="pagination"></div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="view-reports" class="view">
+        <div class="reports-hero">
+          <div class="reports-hero-copy">
+            <span class="reports-kicker">Inteligência operacional</span>
+            <h2>Relatórios e recorrência</h2>
+            <p>Consolide histórico semanal, mensal e sinais de anomalia em uma leitura mais executiva, com envio agendado quando fizer sentido.</p>
+          </div>
+          <div class="reports-hero-side">
+            <span class="reports-hero-label">Leitura orientada</span>
+            <strong>Primeiro entender, depois exportar e automatizar</strong>
+            <p>Os blocos foram organizados para separar análise, sinais críticos e a camada de entrega recorrente.</p>
+          </div>
+        </div>
+        <div class="table-wrap"><div class="table-title">Semanal</div><table><thead><tr><th>Semana</th><th>Entradas</th><th>Saídas</th><th>Líquido</th></tr></thead><tbody id="weekly-body"></tbody></table></div>
+        <div class="table-wrap"><div class="table-title">Mensal</div><table><thead><tr><th>Mês</th><th>Entradas</th><th>Saídas</th><th>Líquido</th></tr></thead><tbody id="monthly-body"></tbody></table></div>
+        <div class="panel"><div class="panel-header">Anomalias</div><div class="panel-body"><div id="anomalies"></div></div></div>
+        <div class="settings-section">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Relatório semanal automático</span>
+          </div>
+          <div class="settings-body">
+            <div class="input-row">
+              <select id="report-delivery-type" style="width:180px">
+                <option value="telegram">Telegram</option>
+                <option value="email">E-mail</option>
+              </select>
+              <input id="report-destination" type="text" placeholder="Chat ID ou e-mail" style="flex:1"/>
+              <select id="report-format" style="width:140px">
+                <option value="pdf">PDF</option>
+                <option value="csv">CSV</option>
+              </select>
+              <select id="report-weekday" style="width:160px">
+                <option value="0">Segunda</option>
+                <option value="1">Terça</option>
+                <option value="2">Quarta</option>
+                <option value="3">Quinta</option>
+                <option value="4">Sexta</option>
+                <option value="5">Sábado</option>
+                <option value="6">Domingo</option>
+              </select>
+              <input id="report-time" type="time" value="09:00" style="width:130px"/>
+              <button class="btn-primary" onclick="saveReportSchedule()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Agendar
+              </button>
+            </div>
+            <div class="input-row">
+              <button class="btn-secondary" onclick="downloadReportNow('pdf')">Baixar PDF agora</button>
+              <button class="btn-secondary" onclick="downloadReportNow('csv')">Baixar CSV agora</button>
+            </div>
+            <span id="report-schedule-msg" class="msg"></span>
+            <table>
+              <thead><tr><th>#</th><th>Entrega</th><th>Destino</th><th>Formato</th><th>Agenda</th><th>Último envio</th><th>Ação</th></tr></thead>
+              <tbody id="report-schedules-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CAMPAIGNS -->
+      <section id="view-campaigns" class="view">
+        <div class="finance-hero">
+          <div class="finance-hero-main">
+            <span class="finance-kicker">Aquisição</span>
+            <h2 id="campaigns-title">Painel de campanhas</h2>
+            <p id="campaigns-copy">Marque a origem de cada membro, acompanhe custo por membro e compare canais, bots e campanhas por grupo.</p>
+          </div>
+          <div class="finance-status-card">
+            <span class="finance-status-kicker">Resumo</span>
+            <strong id="campaigns-summary-title">Origens ativas</strong>
+            <p id="campaigns-summary-copy">Selecione um grupo para acompanhar entradas por origem.</p>
+          </div>
+        </div>
+        <div class="goals-layout">
+          <div class="panel goals-panel">
+            <div class="panel-header">Nova origem</div>
+            <div class="panel-body">
+              <div class="goals-form-grid">
+                <label class="goal-field">
+                  <span>Nome da origem</span>
+                  <input id="campaign-source-name" type="text" placeholder="Campanha HOT, Canal VIP, Bot Z"/>
+                </label>
+                <label class="goal-field">
+                  <span>Tipo</span>
+                  <select id="campaign-source-type">
+                    <option value="campaign">Campanha</option>
+                    <option value="channel">Canal</option>
+                    <option value="bot">Bot</option>
+                    <option value="other">Outro</option>
+                  </select>
+                </label>
+                <label class="goal-field">
+                  <span>Custo total (R$)</span>
+                  <input id="campaign-source-cost" type="number" min="0" step="0.01" placeholder="0.00"/>
+                </label>
+                <label class="goal-field">
+                  <span>Notas</span>
+                  <input id="campaign-source-notes" type="text" placeholder="Observações rápidas"/>
+                </label>
+              </div>
+              <div class="goals-form-actions">
+                <button class="btn-primary" onclick="saveCampaignSource()">Salvar origem</button>
+              </div>
+              <span id="campaign-source-msg" class="msg"></span>
+            </div>
+          </div>
+          <div class="panel goals-panel">
+            <div class="panel-header">Marcar origem do membro</div>
+            <div class="panel-body">
+              <div class="goals-form-grid">
+                <label class="goal-field">
+                  <span>Membro</span>
+                  <select id="campaign-member-select"></select>
+                </label>
+                <label class="goal-field">
+                  <span>Origem</span>
+                  <select id="campaign-origin-select"></select>
+                </label>
+              </div>
+              <div class="goals-form-actions">
+                <button class="btn-primary" onclick="assignCampaignOrigin()">Salvar marcação</button>
+              </div>
+              <span id="campaign-assign-msg" class="msg"></span>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-title">Relatório por origem</div>
+          <table>
+            <thead><tr><th>Origem</th><th>Tipo</th><th>Entradas</th><th>Saídas</th><th>Membros marcados</th><th>Custo</th><th>Custo por membro</th><th>Ação</th></tr></thead>
+            <tbody id="campaign-report-body"></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <div class="table-title">Membros marcados</div>
+          <table>
+            <thead><tr><th>#</th><th>Membro</th><th>Origem</th><th>Tipo</th><th>Marcado em</th><th>Ação</th></tr></thead>
+            <tbody id="campaign-assignments-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PIXEL -->
+      <section id="view-pixel" class="view">
+        <div class="finance-hero">
+          <div class="finance-hero-main">
+            <span class="finance-kicker" id="pixel-kicker">Meta Ads</span>
+            <h2 id="pixel-title">PIXEL</h2>
+            <p id="pixel-copy">Conecte sua conta da Meta para acompanhar o status das campanhas, cliques, leads e preparar o rastreamento completo com Pixel + Conversions API.</p>
+          </div>
+          <div class="finance-status-card pixel-status-card">
+            <span class="finance-status-kicker" id="pixel-status-kicker">Status</span>
+            <strong id="pixel-status-title">Integração aguardando configuração</strong>
+            <p id="pixel-status-copy">Preencha as credenciais da Meta para liberar a sincronização das campanhas e dos eventos.</p>
+            <div class="pixel-status-meta">
+              <span class="pixel-status-badge" id="pixel-ready-badge">Não conectado</span>
+              <span class="pixel-status-hint" id="pixel-last-sync">Sem sincronização ainda</span>
+            </div>
+          </div>
+        </div>
+        <div class="pixel-metrics">
+          <div class="pixel-metric-card">
+            <span id="pixel-metric-running-label">Campanhas rodando</span>
+            <strong id="pixel-campaigns-running">0</strong>
+          </div>
+          <div class="pixel-metric-card">
+            <span id="pixel-metric-paused-label">Campanhas pausadas</span>
+            <strong id="pixel-campaigns-paused">0</strong>
+          </div>
+          <div class="pixel-metric-card">
+            <span id="pixel-metric-clicks-label">Cliques hoje</span>
+            <strong id="pixel-clicks-today">0</strong>
+          </div>
+          <div class="pixel-metric-card">
+            <span id="pixel-metric-leads-label">Leads hoje</span>
+            <strong id="pixel-leads-today">0</strong>
+          </div>
+        </div>
+        <div class="pixel-story-grid">
+          <div class="pixel-story-card">
+            <span class="pixel-story-kicker">Leitura executiva</span>
+            <strong>Campanhas, tracking e atribuição no mesmo lugar</strong>
+            <p>Use esta área para enxergar o estado real da operação Meta: conexão, performance, dados do Pixel e próximos passos de implementação.</p>
+          </div>
+          <div class="pixel-story-card pixel-story-card--soft">
+            <span class="pixel-story-kicker">Fluxo sugerido</span>
+            <strong>Credenciais, sync, validação e escala</strong>
+            <p>Primeiro conecte as credenciais, depois valide eventos, só então acompanhe campanhas ativas e pausadas com consistência.</p>
+          </div>
+        </div>
+        <div class="goals-layout pixel-layout">
+          <div class="panel goals-panel pixel-panel">
+            <div class="panel-header" id="pixel-credentials-title">Credenciais da Meta</div>
+            <div class="panel-body">
+              <div class="goals-form-grid">
+                <label class="goal-field">
+                  <span id="pixel-label-pixel-id">Pixel ID</span>
+                  <input id="pixel-id" type="text" placeholder="Ex.: 123456789012345"/>
+                </label>
+                <label class="goal-field">
+                  <span id="pixel-label-ad-account-id">Ad Account ID</span>
+                  <input id="pixel-ad-account-id" type="text" placeholder="act_123456789012345"/>
+                </label>
+                <label class="goal-field">
+                  <span id="pixel-label-access-token">Access Token</span>
+                  <input id="pixel-access-token" type="password" placeholder="Cole o token da Meta"/>
+                </label>
+                <label class="goal-field">
+                  <span id="pixel-label-dataset-id">Dataset ID</span>
+                  <input id="pixel-dataset-id" type="text" placeholder="Opcional para CAPI"/>
+                </label>
+                <label class="goal-field">
+                  <span id="pixel-label-test-event-code">Test Event Code</span>
+                  <input id="pixel-test-event-code" type="text" placeholder="Opcional para validar eventos"/>
+                </label>
+              </div>
+              <p class="goals-form-note pixel-token-note" id="pixel-token-note">Token atual: não configurado.</p>
+              <div class="goals-form-actions">
+                <button class="btn-primary" onclick="savePixelSettings()">Salvar configuração</button>
+                <button class="btn-secondary" onclick="refreshPixelOverview()">Atualizar status</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel goals-panel pixel-panel">
+            <div class="panel-header" id="pixel-roadmap-title">Escopo da integração</div>
+            <div class="panel-body">
+              <div class="pixel-checklist">
+                <div class="pixel-note-card">
+                  <strong id="pixel-browser-title">Pixel no navegador</strong>
+                  <p id="pixel-browser-copy">Rastrear PageView, clique no CTA, inicio de checkout e lead diretamente no site.</p>
+                </div>
+                <div class="pixel-note-card">
+                  <strong id="pixel-capi-title">Conversions API</strong>
+                  <p id="pixel-capi-copy">Enviar os mesmos eventos pelo backend para reduzir perdas por bloqueadores e melhorar a atribuicao.</p>
+                </div>
+                <div class="pixel-note-card">
+                  <strong id="pixel-insights-title">Insights de campanhas</strong>
+                  <p id="pixel-insights-copy">Puxar status, cliques, leads e gasto da Meta para exibir campanhas rodando ou pausadas em tempo real.</p>
+                </div>
+              </div>
+              <div class="pixel-next-step">
+                <span id="pixel-next-step-label">Proximo passo</span>
+                <strong id="pixel-next-step-title">Aguardando credenciais</strong>
+                <p id="pixel-next-step-copy">Assim que as credenciais forem salvas, conectamos a Insights API e depois ligamos os eventos do Pixel ao fluxo do PIX.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap pixel-table-wrap">
+          <div class="table-title" id="pixel-summary-table-title">Resumo da conexao</div>
+          <div class="pixel-summary-grid">
+            <div class="pixel-summary-item">
+              <span id="pixel-summary-pixel-id-label">Pixel ID conectado</span>
+              <strong id="pixel-summary-pixel-id">Nao informado</strong>
+            </div>
+            <div class="pixel-summary-item">
+              <span id="pixel-summary-ad-account-label">Conta de anuncios</span>
+              <strong id="pixel-summary-ad-account">Nao informado</strong>
+            </div>
+            <div class="pixel-summary-item">
+              <span id="pixel-summary-dataset-label">Dataset</span>
+              <strong id="pixel-summary-dataset">Nao informado</strong>
+            </div>
+            <div class="pixel-summary-item">
+              <span id="pixel-summary-token-label">Token</span>
+              <strong id="pixel-summary-token">Nao configurado</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GOALS -->
+      <section id="view-goals" class="view">
+        <div class="goals-hero">
+          <div class="goals-hero-main">
+            <span class="goals-kicker">Planejamento do grupo</span>
+            <h2 id="goals-group-title">Metas</h2>
+            <p id="goals-group-caption">Defina objetivos por grupo e acompanhe a execucao em tempo real.</p>
+            <div class="goals-hero-meta">
+              <div class="goals-hero-pill">
+                <span>Semana de referencia</span>
+                <strong id="goals-week-label">-</strong>
+              </div>
+              <div class="goals-hero-pill">
+                <span>Mes de referencia</span>
+                <strong id="goals-month-label">-</strong>
+              </div>
+              <div class="goals-hero-pill">
+                <span>Base atual</span>
+                <strong id="goals-members-live">-</strong>
+              </div>
+            </div>
+          </div>
+          <div class="goals-score-card">
+            <span class="goals-score-kicker">Execucao</span>
+            <strong id="goals-score">0%</strong>
+            <p id="goals-score-copy">Selecione um grupo para acompanhar.</p>
+          </div>
+        </div>
+
+        <div id="goals-empty" class="goals-empty" style="display:none">
+          <div>
+            <strong>Selecione um grupo</strong>
+            <p>Escolha um grupo no topo para definir metas personalizadas e acompanhar o ritmo de crescimento.</p>
+          </div>
+        </div>
+
+        <div id="goals-content">
+          <div id="goals-metrics-grid" class="goals-metrics-grid"></div>
+
+          <div class="goals-layout">
+            <div class="panel goals-panel">
+              <div class="panel-header">Configurar metas</div>
+              <div class="panel-body">
+                <div class="goals-form-grid">
+                  <label class="goal-field">
+                    <span>Entradas por semana</span>
+                    <input id="goal-weekly-joins" type="number" min="0" step="1" oninput="previewGoals()"/>
+                  </label>
+                  <label class="goal-field">
+                    <span>Liquido mensal</span>
+                    <input id="goal-monthly-net" type="number" min="0" step="1" oninput="previewGoals()"/>
+                  </label>
+                  <label class="goal-field">
+                    <span>Base de membros</span>
+                    <input id="goal-member-base" type="number" min="0" step="1" oninput="previewGoals()"/>
+                  </label>
+                  <label class="goal-field">
+                    <span>Churn maximo (%)</span>
+                    <input id="goal-max-churn" type="number" min="0" step="0.1" oninput="previewGoals()"/>
+                  </label>
+                </div>
+                <div class="goals-form-note">As metas ficam salvas neste navegador, separadas por grupo.</div>
+                <div class="goals-form-actions">
+                  <button id="goals-reset-btn" class="btn-secondary" onclick="resetGoals()">Recalcular</button>
+                  <button id="goals-save-btn" class="btn-primary" onclick="saveGoals()">Salvar metas</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel goals-panel">
+              <div class="panel-header">Radar de execucao</div>
+              <div class="panel-body">
+                <ul id="goals-insights" class="goals-insights"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FINANCE -->
+      <section id="view-finance" class="view">
+        <div class="finance-hero">
+          <div class="finance-hero-main">
+            <span class="finance-kicker">Recebimentos PIX</span>
+            <h2 id="finance-group-title">Central financeira PIXGO</h2>
+            <p id="finance-group-caption">Conecte a PIXGO, acompanhe status de pagamentos e mantenha o faturamento total sempre visivel no dashboard.</p>
+            <div class="finance-metrics-grid">
+              <div class="finance-metric-card">
+                <span>Faturamento total</span>
+                <strong id="finance-total-received">R$ 0,00</strong>
+              </div>
+              <div class="finance-metric-card">
+                <span>Em aberto</span>
+                <strong id="finance-pending-amount">R$ 0,00</strong>
+              </div>
+              <div class="finance-metric-card">
+                <span>Pagamentos</span>
+                <strong id="finance-total-payments">0</strong>
+              </div>
+              <div class="finance-metric-card">
+                <span>Taxa paga</span>
+                <strong id="finance-conversion-rate">0%</strong>
+              </div>
+            </div>
+          </div>
+          <div class="finance-status-card">
+            <span class="finance-status-kicker">Gateway</span>
+            <strong>PIXGO</strong>
+            <p id="finance-gateway-status">Configure sua API key para liberar leitura de status e faturamento da PIXGO.</p>
+            <div class="finance-status-note">
+              <span>Webhook sugerido</span>
+              <code id="finance-webhook-endpoint">/api/finance/pixgo/webhook</code>
+            </div>
+            <div class="finance-status-actions">
+              <button class="btn-secondary" onclick="refreshAllFinancePayments()">Atualizar status</button>
+            </div>
+          </div>
+        </div>
+        <div class="finance-story-grid">
+          <div class="finance-story-card">
+            <span class="finance-story-kicker">Operação</span>
+            <strong>Recebimento, reconciliação e consulta no mesmo fluxo</strong>
+            <p>Centralize geração de cobrança, atualização de status, importação histórica e leitura operacional sem sair da tela.</p>
+          </div>
+          <div class="finance-story-card finance-story-card--soft">
+            <span class="finance-story-kicker">Leitura rápida</span>
+            <strong>O topo resume. O corpo executa.</strong>
+            <p>Os blocos abaixo foram organizados para separar integração, emissão, histórico e investigação de pagamentos externos.</p>
+          </div>
+        </div>
+
+        <div id="finance-empty" class="goals-empty" style="display:none">
+          <div>
+            <strong>Selecione um grupo</strong>
+            <p>Escolha um grupo no topo para atrelar cobrancas e recebimentos ao contexto correto.</p>
+          </div>
+        </div>
+
+        <div id="finance-content">
+          <div class="finance-layout">
+            <div class="panel finance-panel">
+              <div class="panel-header">Nova cobranca PIX</div>
+              <div class="panel-body">
+                <div class="finance-form-grid">
+                  <label class="goal-field finance-field">
+                    <span>Valor (R$)</span>
+                    <input id="finance-amount" type="number" min="0" step="0.01" placeholder="29.90"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>Descricao</span>
+                    <input id="finance-description" type="text" placeholder="Acesso premium do grupo"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>Nome do cliente</span>
+                    <input id="finance-customer-name" type="text" placeholder="Nome completo"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>CPF</span>
+                    <input id="finance-customer-cpf" type="text" placeholder="Somente numeros"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>Email</span>
+                    <input id="finance-customer-email" type="email" placeholder="cliente@email.com"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>Telefone</span>
+                    <input id="finance-customer-phone" type="text" placeholder="DDD + numero"/>
+                  </label>
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Endereco do cliente (opcional)</span>
+                    <input id="finance-customer-address" type="text" placeholder="Rua, numero, bairro, cidade"/>
+                  </label>
+                </div>
+                <div class="goals-form-note">As cobrancas ficam salvas localmente no dashboard e o status pode ser atualizado em lote a qualquer momento.</div>
+                <div class="goals-form-actions">
+                  <button class="btn-secondary" onclick="loadFinance()">Atualizar painel</button>
+                  <button class="btn-primary" onclick="createFinancePayment()">Gerar cobranca PIX</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel finance-panel">
+              <div class="panel-header">Integracao PIXGO</div>
+              <div class="panel-body">
+                <div class="finance-form-grid">
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>API Key</span>
+                    <input id="pixgo-api-key" type="password" placeholder="Cole a API key da PIXGO"/>
+                  </label>
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Webhook publico</span>
+                    <input id="pixgo-webhook-url" type="url" placeholder="https://seu-dominio.com/api/finance/pixgo/webhook"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>Webhook secret</span>
+                    <input id="pixgo-webhook-secret" type="password" placeholder="Opcional"/>
+                  </label>
+                  <label class="goal-field finance-field">
+                    <span>Descricao padrao</span>
+                    <input id="pixgo-default-description" type="text" placeholder="Cobranca TG Analytics"/>
+                  </label>
+                </div>
+                <div class="goals-form-note">Se o dashboard estiver em <code>localhost</code>, use um dominio publico ou tunel para receber webhooks da PIXGO.</div>
+                <div class="goals-form-actions">
+                  <button class="btn-primary" onclick="saveFinanceSettings()">Salvar integracao</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel finance-panel">
+              <div class="panel-header">Importar historico</div>
+              <div class="panel-body">
+                <div class="finance-form-grid">
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Arquivo CSV ou JSON</span>
+                    <input id="finance-import-file" type="file" accept=".csv,.json,application/json,text/csv"/>
+                  </label>
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Conta PIXGO (opcional)</span>
+                    <input id="finance-import-account" type="text" placeholder="Ex.: Vibratura ou Velatura"/>
+                  </label>
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Colar conteudo manual</span>
+                    <textarea id="finance-import-text" rows="8" placeholder='Cole aqui um JSON ou CSV com colunas como payment_id, amount, status, customer_name, created_at'></textarea>
+                  </label>
+                </div>
+                <div class="goals-form-note">Use esta area para importar transacoes antigas. O importador aceita JSON, lista JSON e CSV com colunas flexiveis, e atualiza pagamentos existentes pelo <code>payment_id</code>.</div>
+                <div class="goals-form-actions">
+                  <button class="btn-secondary" onclick="clearFinanceImport()">Limpar</button>
+                  <button class="btn-primary" onclick="importFinanceHistory()">Importar historico</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel finance-panel">
+              <div class="panel-header">Consultar transacao externa</div>
+              <div class="panel-body">
+                <div class="finance-form-grid">
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Payment ID</span>
+                    <input id="finance-lookup-payment-id" type="text" placeholder="Ex.: dep_1234567890abcdef"/>
+                  </label>
+                  <label class="goal-field finance-field finance-field--full">
+                    <span>Conta PIXGO (opcional)</span>
+                    <input id="finance-lookup-account" type="text" placeholder="Ex.: Vibratura ou Velatura"/>
+                  </label>
+                </div>
+                <div class="goals-form-note">Use esta consulta quando a transacao foi criada fora do painel. Se voce informar a conta, a busca fica mais rapida.</div>
+                <div class="goals-form-actions">
+                  <button class="btn-primary" onclick="lookupFinancePayment()">Buscar transacao</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="finance-layout finance-layout--secondary">
+            <div class="panel finance-panel">
+              <div class="panel-header">Cobranca ativa</div>
+              <div class="panel-body">
+                <div id="finance-active-payment" class="finance-active-empty">
+                  Selecione um pagamento para visualizar status, QR Code e dados completos.
+                </div>
+              </div>
+            </div>
+
+            <div class="table-wrap finance-table-wrap">
+              <div class="table-title">Historico financeiro</div>
+              <div class="goals-form-actions" style="padding:0 18px 14px;justify-content:flex-start">
+                <label class="goal-field finance-field" style="min-width:260px;margin:0">
+                  <span id="finance-account-filter-label">Conta PIXGO</span>
+                  <select id="finance-account-filter" onchange="applyFinanceAccountFilter()">
+                    <option value="">Todas as contas</option>
+                  </select>
+                </label>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pagamento</th>
+                    <th>Cliente</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Atualizado</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-payments-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MEMBERS -->
+      <section id="view-members" class="view">
+        <div class="members-hero">
+          <div class="members-hero-copy">
+            <span class="members-kicker">Base do Telegram</span>
+            <h2>Membros e permissões</h2>
+            <p>Monitore admins, membros comuns e o estado da sincronização em um fluxo mais rápido para triagem e conferência operacional.</p>
+          </div>
+          <div class="members-hero-side">
+            <span class="members-hero-label">Resumo operacional</span>
+            <strong>Busca, filtro e sync no topo</strong>
+            <p>A tabela abaixo fica focada na leitura, enquanto os controles principais permanecem concentrados nesta faixa inicial.</p>
+          </div>
+        </div>
+        <div class="members-bar">
+          <div class="members-stats">
+            <div class="stat-item"><span class="val" id="m-total">–</span><span class="lbl">Total</span></div>
+            <div class="stat-item"><span class="val" id="m-admins" style="color:var(--yellow)">–</span><span class="lbl">Admins</span></div>
+            <div class="stat-item"><span class="val" id="m-common">–</span><span class="lbl">Membros</span></div>
+          </div>
+          <div class="members-actions">
+            <div class="search-wrap">
+              <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="member-search" type="text" placeholder="Buscar membro..." oninput="filterMembers()"/>
+            </div>
+            <select id="member-role-filter" onchange="filterMembers()">
+              <option value="all">Todos</option>
+              <option value="admin">Admins</option>
+              <option value="member">Membros</option>
+            </select>
+            <button class="btn-secondary" onclick="syncMembers()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Sincronizar
+            </button>
+            <button class="btn-primary" onclick="syncFull()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Sync Completo
+            </button>
+            <span id="sync-msg" class="msg"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>#</th><th>Username</th><th>Nome</th><th>Tipo</th><th>Último acesso</th></tr></thead><tbody id="members-body"></tbody></table>
+          <div id="members-empty" style="display:none;padding:24px;text-align:center;color:var(--muted)">Nenhum membro encontrado.</div>
+        </div>
+      </section>
+
+      <!-- VAULT -->
+      <section id="view-vault" class="view">
+        <div class="vault-hero">
+          <div class="vault-hero-main">
+            <span class="vault-kicker">Credenciais</span>
+            <h2>Cofre operacional</h2>
+            <p>Organize tokens, logins, chaves e acessos internos com mascara para campos sensiveis, copia rapida auditada e gerador de senha integrado.</p>
+          </div>
+        </div>
+        <div class="vault-layout">
+          <div class="vault-sidebar">
+            <div class="vault-sidebar-header">
+              <span>Categorias</span>
+              <button onclick="vaultNewCategory()" class="btn-icon" title="Nova categoria">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <ul id="vault-cats" class="vault-cats"></ul>
+          </div>
+          <div class="vault-main">
+            <div class="vault-toolbar">
+              <div class="search-wrap" style="flex:1">
+                <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input id="vault-global-search" type="text" placeholder="Busca global no cofre..." oninput="vaultGlobalSearch(this.value)" style="width:100%"/>
+              </div>
+              <button class="btn-secondary" onclick="openVaultPasswordGenerator()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Gerar senha
+              </button>
+              <button class="btn-secondary" onclick="showVaultHistory()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Histórico
+              </button>
+            </div>
+            <div class="vault-main-header">
+              <div class="vault-main-heading">
+                <span class="vault-main-kicker">Base segura</span>
+                <div class="vault-main-copy">
+                  <span id="vault-cat-title">Selecione uma categoria</span>
+                  <small id="vault-cat-meta">Escolha uma categoria para listar as credenciais.</small>
+                </div>
+              </div>
+              <div class="vault-main-actions">
+                <button onclick="vaultNewEntry()" id="btn-new-entry" class="btn-primary" style="display:none">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Nova entrada
+                </button>
+              </div>
+            </div>
+            <div id="vault-entries" class="vault-entries">
+              <p class="muted" style="padding:20px">Selecione uma categoria à esquerda.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL ENTRADA -->
+        <div id="vault-modal" class="vault-modal" style="display:none">
+          <div class="vault-modal-box">
+            <div class="vault-modal-header">
+              <span id="vault-modal-title">Nova Entrada</span>
+              <button onclick="vaultCloseModal()" class="btn-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="vault-modal-body">
+              <label>Título</label>
+              <input id="vm-title" type="text" placeholder="Ex: Gmail principal"/>
+              <label>Campos</label>
+              <div id="vm-fields"></div>
+              <div class="vault-modal-actions">
+                <button onclick="vaultAddField()" class="btn-add-field">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Adicionar campo
+                </button>
+                <button onclick="vaultAddField('', '', true)" class="btn-secondary">Campo sensivel</button>
+                <button onclick="openVaultPasswordGenerator()" class="btn-secondary">Gerar senha</button>
+              </div>
+              <label>Notas</label>
+              <textarea id="vm-notes" placeholder="Observações..." rows="3"></textarea>
+            </div>
+            <div class="vault-modal-footer">
+              <button onclick="vaultCloseModal()" class="btn-secondary">Cancelar</button>
+              <button onclick="vaultSaveEntry()" class="btn-primary">Salvar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL GERADOR DE SENHAS -->
+      <div id="vault-pw-modal" class="vault-modal" style="display:none">
+        <div class="vault-modal-box" style="max-width:420px">
+          <div class="vault-modal-header">
+            <span>🔐 Gerador de Senhas</span>
+            <button onclick="el('vault-pw-modal').style.display='none'" class="btn-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="vault-modal-body">
+            <label>Comprimento</label>
+            <div style="display:flex;align-items:center;gap:12px">
+              <input type="range" id="pw-len" min="8" max="64" value="20" oninput="pwGenUpdate()" style="flex:1;accent-color:var(--orange)"/>
+              <span id="pw-len-val" style="font-weight:700;min-width:28px">20</span>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+              <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+                <input type="checkbox" id="pw-upper" checked onchange="pwGenUpdate()" style="accent-color:var(--orange)"/> Maiúsculas
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+                <input type="checkbox" id="pw-num" checked onchange="pwGenUpdate()" style="accent-color:var(--orange)"/> Números
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+                <input type="checkbox" id="pw-sym" checked onchange="pwGenUpdate()" style="accent-color:var(--orange)"/> Símbolos
+              </label>
+            </div>
+            <label style="margin-top:10px">Senha Gerada</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="pw-result" readonly style="flex:1;font-family:monospace;font-size:13px;letter-spacing:.5px"/>
+              <button class="btn-secondary" onclick="pwGenUpdate()" title="Gerar nova">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
+              <button class="btn-primary" onclick="pwCopy()" title="Copiar">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <div id="pw-strength" class="pw-strength-bar" style="margin-top:10px">
+              <div id="pw-strength-fill" style="height:4px;border-radius:2px;transition:width .3s,background .3s"></div>
+            </div>
+            <span id="pw-strength-label" style="font-size:11px;color:var(--muted)"></span>
+          </div>
+          <div class="vault-modal-footer">
+            <button onclick="el('vault-pw-modal').style.display='none'" class="btn-secondary">Fechar</button>
+            <button onclick="pwUseInField()" class="btn-primary">Usar no campo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL HISTÓRICO DO COFRE -->
+      <div id="vault-history-modal" class="vault-modal" style="display:none">
+        <div class="vault-modal-box" style="max-width:500px">
+          <div class="vault-modal-header">
+            <span>Histórico de Acessos</span>
+            <button onclick="el('vault-history-modal').style.display='none'" class="btn-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="vault-modal-body" style="max-height:50vh;overflow-y:auto">
+            <div id="vault-history-list"></div>
+          </div>
+          <div class="vault-modal-footer">
+            <button onclick="el('vault-history-modal').style.display='none'" class="btn-secondary">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL CATEGORIA -->
+        <div id="vault-cat-modal" class="vault-modal" style="display:none">
+          <div class="vault-modal-box" style="max-width:380px">
+            <div class="vault-modal-header">
+              <span>Nova Categoria</span>
+              <button onclick="el('vault-cat-modal').style.display='none'" class="btn-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div class="vault-modal-body">
+              <label>Nome</label>
+              <input id="vc-name" type="text" placeholder="Ex: Redes Sociais"/>
+              <label>Ícone (emoji)</label>
+              <input id="vc-icon" type="text" placeholder="🔑" style="width:90px"/>
+              <label>Cor</label>
+              <input id="vc-color" type="color" value="#6366f1" style="width:60px;height:36px;padding:2px;border-radius:8px"/>
+            </div>
+            <div class="vault-modal-footer">
+              <button onclick="el('vault-cat-modal').style.display='none'" class="btn-secondary">Cancelar</button>
+              <button onclick="window.vaultSaveCat()" class="btn-primary">Criar</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view">
+        <div class="settings-hero">
+          <div class="settings-hero-copy">
+            <span class="settings-kicker">Painel de controle</span>
+            <h2>Configurações do produto</h2>
+            <p>Organize aparência, automação, grupos, acessos e entrega em áreas mais claras, com menos ruído visual e mais contexto por categoria.</p>
+          </div>
+          <div class="settings-hero-side">
+            <span class="settings-hero-label">Navegação contextual</span>
+            <strong>Cada categoria agrupa uma responsabilidade do sistema</strong>
+            <p>Use os chips abaixo para alternar entre identidade visual, operação do bot, estrutura de acesso e automações de entrega.</p>
+          </div>
+        </div>
+        <div class="settings-categories" id="settings-categories">
+          <button type="button" class="settings-category-chip is-active" data-settings-category="appearance" onclick="setSettingsCategory('appearance')">Aparencia</button>
+          <button type="button" class="settings-category-chip" data-settings-category="bot" onclick="setSettingsCategory('bot')">Bot</button>
+          <button type="button" class="settings-category-chip" data-settings-category="groups" onclick="setSettingsCategory('groups')">Grupos</button>
+          <button type="button" class="settings-category-chip" data-settings-category="access" onclick="setSettingsCategory('access')">Acesso</button>
+          <button type="button" class="settings-category-chip" data-settings-category="delivery" onclick="setSettingsCategory('delivery')">Entrega</button>
+        </div>
+        <div class="settings-section" data-settings-group="appearance">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span id="appearance-section-title">Aparencia do painel</span>
+          </div>
+          <div class="settings-body settings-body--appearance">
+            <p class="settings-copy" id="appearance-section-copy">Escolha o modo base e o estilo visual do dashboard.</p>
+            <div class="appearance-layout">
+              <div class="appearance-block appearance-block--profile">
+                <span class="appearance-label" id="appearance-profile-label">Perfil visual</span>
+                <div class="profile-persona-card">
+                  <div class="profile-persona-head">
+                    <span class="profile-persona-avatar" id="profile-persona-avatar">{{ (auth_user.display_name or auth_user.username or 'A')[0]|upper }}</span>
+                    <div class="profile-persona-copy">
+                      <strong id="profile-persona-name">{{ auth_user.display_name or auth_user.username }}</strong>
+                      <span id="profile-persona-title">Administrador</span>
+                    </div>
+                  </div>
+                  <div class="settings-grid settings-grid--two">
+                    <label class="settings-field settings-field--full">
+                      <span id="profile-avatar-url-label">URL da foto</span>
+                      <input id="profile-avatar-url" type="url" placeholder="https://.../sua-foto.png"/>
+                    </label>
+                    <label class="settings-field">
+                      <span id="profile-title-label">Cargo / assinatura</span>
+                      <input id="profile-title" type="text" placeholder="Operacao, admin, growth..."/>
+                    </label>
+                    <label class="settings-field">
+                      <span id="profile-motion-label">Animacao</span>
+                      <select id="profile-motion-level">
+                        <option value="calm">Calma</option>
+                        <option value="standard">Padrao</option>
+                        <option value="expressive">Expressiva</option>
+                      </select>
+                    </label>
+                    <label class="settings-field settings-field--full">
+                      <span id="profile-bio-label">Descricao curta</span>
+                      <textarea id="profile-bio" rows="3" placeholder="Uma frase curta para personalizar o painel."></textarea>
+                    </label>
+                  </div>
+                  <div class="goals-form-actions">
+                    <button type="button" class="btn-secondary" onclick="previewProfileTheme()">Prever visual</button>
+                    <button type="button" class="btn-primary" onclick="saveProfileTheme()">Salvar perfil</button>
+                  </div>
+                  <span id="profile-theme-msg" class="msg"></span>
+                </div>
+              </div>
+              <div class="appearance-block">
+                <span class="appearance-label" id="appearance-mode-label">Modo base</span>
+                <div class="appearance-mode-switch">
+                  <button type="button" class="appearance-mode-btn" id="appearance-mode-light" onclick="setThemeMode('light')">Claro</button>
+                  <button type="button" class="appearance-mode-btn" id="appearance-mode-dark" onclick="setThemeMode('dark')">Escuro</button>
+                </div>
+              </div>
+              <div class="appearance-block appearance-block--presets">
+                <span class="appearance-label" id="appearance-preset-label">Estilo visual</span>
+                <div class="appearance-preset-grid" id="appearance-preset-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section" data-settings-group="bot">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.26 6.27l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span id="settings-token-title">Token do Bot</span>
+          </div>
+          <div class="settings-body">
+            <div class="input-row">
+              <input id="inp-token" type="password" placeholder="token ja configurado" style="flex:1"/>
+              <button class="btn-icon" onclick="toggleTokenVis()" title="Mostrar/ocultar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button class="btn-secondary" onclick="saveToken()">Salvar</button>
+              <button class="btn-primary" onclick="restartBot()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Iniciar
+              </button>
+              <button class="btn-danger" onclick="stopBot()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                Parar
+              </button>
+            </div>
+            <span id="token-msg" class="msg"></span>
+          </div>
+        </div>
+        <div class="settings-section" data-settings-group="groups">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span id="settings-groups-title">Grupos Monitorados</span>
+          </div>
+          <div class="settings-body">
+            <div class="input-row">
+              <input id="inp-chatid" type="text" placeholder="Chat ID" style="width:180px"/>
+              <input id="inp-title"  type="text" placeholder="Nome (opcional)" style="flex:1"/>
+              <button class="btn-primary" onclick="addGroup()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Adicionar
+              </button>
+            </div>
+            <span id="group-msg" class="msg"></span>
+            <table><thead><tr><th>Chat ID</th><th>Nome</th><th>Desde</th><th>Último evento</th><th>Ação</th></tr></thead><tbody id="groups-body"></tbody></table>
+          </div>
+        </div>
+        <div class="settings-section" data-settings-group="access">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="settings-users-title">Usuarios de acesso</span>
+          </div>
+          <div class="settings-body">
+            <p class="settings-copy" id="settings-users-copy">Crie contas para acessar o painel com senha, papel e preferencias visuais separadas por usuario.</p>
+            <div class="settings-grid settings-grid--two">
+              <label class="settings-field">
+                <span>Usuario</span>
+                <input id="dashboard-user-username" type="text" placeholder="usuario"/>
+              </label>
+              <label class="settings-field">
+                <span>Nome de exibicao</span>
+                <input id="dashboard-user-display-name" type="text" placeholder="Nome de exibicao"/>
+              </label>
+              <label class="settings-field">
+                <span>Senha</span>
+                <input id="dashboard-user-password" type="password" placeholder="Crie uma senha"/>
+              </label>
+              <label class="settings-field">
+                <span>Papel</span>
+                <select id="dashboard-user-role">
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </label>
+            </div>
+            <div class="goals-form-actions">
+              <button class="btn-primary" onclick="createDashboardUser()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Criar usuario
+              </button>
+            </div>
+            <span id="dashboard-user-msg" class="msg"></span>
+            <table>
+              <thead><tr><th>#</th><th>Usuario</th><th>Nome</th><th>Papel</th><th>Status</th><th>Ultimo acesso</th><th>Acao</th></tr></thead>
+              <tbody id="dashboard-users-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="settings-section" data-settings-group="delivery">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 8-4-16-3 8H2"/></svg>
+            <span id="settings-report-delivery-title">Entrega automatica de relatorios</span>
+          </div>
+          <div class="settings-body">
+            <p class="settings-copy" id="settings-report-delivery-copy">Configure SMTP para envios por e-mail. Os envios por Telegram usam o proprio bot quando voce informar um chat ID na agenda.</p>
+            <div class="settings-grid settings-grid--two">
+              <label class="settings-field">
+                <span id="smtp-host-label">SMTP host</span>
+                <input id="smtp-host" type="text" placeholder="smtp.seudominio.com"/>
+              </label>
+              <label class="settings-field">
+                <span id="smtp-port-label">Porta</span>
+                <input id="smtp-port" type="number" min="1" step="1" placeholder="587"/>
+              </label>
+              <label class="settings-field">
+                <span id="smtp-username-label">Usuario SMTP</span>
+                <input id="smtp-username" type="text" placeholder="usuario@dominio.com"/>
+              </label>
+              <label class="settings-field">
+                <span id="smtp-password-label">Senha SMTP</span>
+                <input id="smtp-password" type="password" placeholder="Preencha apenas para atualizar"/>
+              </label>
+              <label class="settings-field settings-field--full">
+                <span id="smtp-sender-label">Remetente</span>
+                <input id="smtp-sender" type="email" placeholder="relatorios@dominio.com"/>
+              </label>
+            </div>
+            <label class="settings-toggle" for="smtp-tls">
+              <input id="smtp-tls" type="checkbox" checked/>
+              <span id="smtp-tls-label">Usar TLS</span>
+            </label>
+            <div class="goals-form-actions">
+              <button class="btn-primary" id="save-report-delivery-btn" onclick="saveReportDeliverySettings()">Salvar entrega</button>
+            </div>
+            <span id="report-delivery-msg" class="msg"></span>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- SCHEDULER -->
+      <section id="view-scheduler" class="view">
+        <div class="ops-hero">
+          <div class="ops-hero-copy">
+            <span class="ops-kicker">Automação</span>
+            <h2>Agendador de mensagens</h2>
+            <p>Programe envios com mais contexto, leitura rápida da fila e foco em execução sem ruído desnecessário.</p>
+          </div>
+          <div class="ops-hero-side">
+            <span class="ops-hero-label">Fluxo</span>
+            <strong>Escreva, agende e monitore a fila</strong>
+            <p>O composer fica isolado do histórico para reduzir erro operacional e facilitar revisão antes do envio.</p>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-header">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span data-i18n="scheduler_title">Agendador de Mensagens</span>
+          </div>
+          <div class="settings-body">
+            <div class="input-row">
+              <textarea id="sched-msg" placeholder="Mensagem a enviar..." rows="2" style="flex:1;resize:vertical"></textarea>
+            </div>
+            <div class="input-row">
+              <label id="sched-datetime-label" style="color:var(--muted);font-size:12px;font-weight:600">Data/Hora:</label>
+              <input type="datetime-local" id="sched-dt" style="background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);padding:7px 12px;font-family:inherit;font-size:13px;outline:none"/>
+              <button class="btn-primary" onclick="schedAdd()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span data-i18n="btn_schedule">Agendar</span>
+              </button>
+            </div>
+            <span id="sched-msg-feedback" class="msg"></span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-title" data-i18n="sched_queue">Fila de Mensagens</div>
+          <table>
+            <thead><tr><th>#</th><th data-i18n="col_message">Mensagem</th><th data-i18n="col_date">Data/Hora</th><th data-i18n="col_status">Status</th><th data-i18n="col_action">Ação</th></tr></thead>
+            <tbody id="sched-tbody"></tbody>
+          </table>
+          <div id="sched-empty" style="padding:20px;text-align:center;color:var(--muted);display:none" data-i18n="sched_empty">Nenhuma mensagem agendada.</div>
+        </div>
+      </section>
+
+      <!-- LOGS -->
+      <section id="view-logs" class="view">
+        <div class="ops-hero ops-hero--logs">
+          <div class="ops-hero-copy">
+            <span class="ops-kicker">Diagnóstico</span>
+            <h2>Logs em tempo real</h2>
+            <p>Acompanhe o comportamento do bot com uma área de observabilidade mais limpa, legível e adequada para triagem rápida.</p>
+          </div>
+          <div class="ops-hero-side">
+            <span class="ops-hero-label">Modo leitura</span>
+            <strong>Menos ruído visual, mais contexto por linha</strong>
+            <p>A região abaixo foi preparada para sessões longas de monitoramento sem cansar a leitura.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span data-i18n="logs_title">Log do Bot em Tempo Real</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-secondary" onclick="clearLogs()" style="padding:4px 12px;font-size:12px" data-i18n="btn_clear_logs">Limpar</button>
+              <div class="live-dot"></div>
+            </div>
+          </div>
+          <div id="log-container" class="log-container">
+            <div class="log-placeholder" data-i18n="logs_empty">Aguardando logs do bot...</div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </main>
+  <div class="notifications-backdrop" id="notifications-backdrop" onclick="closeNotificationsDrawer()"></div>
+</div>
+  <script>
+    window.PAINEL_HOT_AUTH = {{ auth_user|tojson }};
+  </script>
+  <script src="/static/js/dashboard.js?v={{ asset_version }}" defer></script>
+  <script src="/static/js/hot-panel.js?v={{ asset_version }}" defer></script>
+</body>
+</html>

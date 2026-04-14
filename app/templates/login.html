@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Painel HOT | Acesso</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/pepper-favicon.svg?v=1"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #07111d;
+      --bg2: #0d1929;
+      --surface: rgba(11, 21, 36, .92);
+      --surface-strong: rgba(16, 30, 49, .96);
+      --border: rgba(148, 163, 184, .16);
+      --text: #edf5ff;
+      --muted: #96a9c4;
+      --accent: #2563eb;
+      --accent-2: #60a5fa;
+      --shadow: 0 32px 72px rgba(2, 6, 23, .48);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, .18), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, .12), transparent 26%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .auth-shell {
+      width: min(1120px, 100%);
+      display: grid;
+      grid-template-columns: minmax(320px, 1.1fr) minmax(360px, .9fr);
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      overflow: hidden;
+      background: rgba(6, 12, 22, .82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .auth-brand {
+      padding: 46px 42px;
+      background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, .22), transparent 34%),
+        linear-gradient(180deg, rgba(10, 20, 34, .94), rgba(10, 18, 31, .98));
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      justify-content: flex-start;
+    }
+
+    .auth-brand-copy {
+      display: grid;
+      gap: 22px;
+    }
+
+    .auth-brand-logo {
+      position: relative;
+      display: inline-grid;
+      justify-items: start;
+      gap: 2px;
+      width: fit-content;
+      max-width: 100%;
+      text-transform: uppercase;
+      line-height: .84;
+      letter-spacing: -.06em;
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .34));
+    }
+
+    .auth-brand-logo-line {
+      position: relative;
+      display: block;
+      width: fit-content;
+      font-size: clamp(54px, 7vw, 88px);
+      font-weight: 900;
+      color: #f8fbff;
+      -webkit-text-stroke: 3px rgba(229, 238, 252, .96);
+      text-shadow:
+        0 2px 0 rgba(38, 55, 84, .9),
+        0 4px 0 rgba(24, 37, 58, .88),
+        0 8px 18px rgba(0, 0, 0, .34);
+      background: linear-gradient(180deg, #ffffff 0%, #eef4ff 35%, #dce8f9 68%, #c4d4ec 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      paint-order: stroke fill;
+    }
+
+    .auth-brand-logo-line--top {
+      font-size: clamp(48px, 6vw, 74px);
+    }
+
+    .auth-brand-logo-line--bottom {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .auth-brand p {
+      margin: 0;
+      max-width: 560px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .auth-highlights {
+      display: grid;
+      gap: 16px;
+      margin-top: 2px;
+    }
+
+    .auth-highlight {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      padding: 18px 20px;
+      border-radius: 22px;
+      background: rgba(15, 29, 49, .8);
+      border: 1px solid rgba(148, 163, 184, .14);
+    }
+
+    .auth-highlight-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(37, 99, 235, .16);
+      color: #dbeafe;
+      line-height: 0;
+      overflow: hidden;
+    }
+
+    .auth-highlight-icon svg {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      display: block;
+      width: 26px;
+      height: 26px;
+      margin: 0;
+      transform: translate(-50%, -50%);
+      flex: 0 0 auto;
+    }
+
+    .auth-highlight-copy {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .auth-highlight strong {
+      display: block;
+      font-size: 16px;
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    .auth-highlight span {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .auth-panel {
+      padding: 34px;
+      background: linear-gradient(180deg, rgba(12, 22, 38, .92), rgba(12, 22, 38, .98));
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .auth-message {
+      padding: 14px 16px;
+      border-radius: 18px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .auth-message--error {
+      background: rgba(127, 29, 29, .26);
+      color: #fecaca;
+      border: 1px solid rgba(248, 113, 113, .22);
+    }
+
+    .auth-message--success {
+      background: rgba(6, 95, 70, .24);
+      color: #a7f3d0;
+      border: 1px solid rgba(52, 211, 153, .18);
+    }
+
+    .auth-card {
+      display: none;
+      gap: 18px;
+      padding: 24px;
+      border-radius: 26px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(15, 29, 49, .86), rgba(12, 24, 40, .92));
+    }
+
+    .auth-card.is-active {
+      display: grid;
+    }
+
+    .auth-card h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -.03em;
+    }
+
+    .auth-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .auth-fields {
+      display: grid;
+      gap: 14px;
+    }
+
+    .auth-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .auth-field span {
+      color: #c9d7e8;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .auth-field input {
+      width: 100%;
+      border: 1px solid rgba(148, 163, 184, .18);
+      border-radius: 18px;
+      background: rgba(8, 16, 28, .86);
+      color: var(--text);
+      padding: 14px 16px;
+      font: inherit;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+
+    .auth-field input:focus {
+      border-color: rgba(96, 165, 250, .44);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, .14);
+      transform: translateY(-1px);
+    }
+
+    .auth-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .auth-btn {
+      border: 0;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 16px 32px rgba(37, 99, 235, .24);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .auth-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 36px rgba(37, 99, 235, .3);
+    }
+
+    .auth-hint {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 920px) {
+      .auth-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-brand,
+      .auth-panel {
+        padding: 28px 24px;
+      }
+
+      .auth-brand-logo-line--bottom {
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="auth-brand">
+      <div class="auth-brand-copy">
+        <div class="auth-brand-logo" aria-label="HOT VAZADOS">
+          <span class="auth-brand-logo-line auth-brand-logo-line--top">HOT</span>
+          <span class="auth-brand-logo-line auth-brand-logo-line--bottom">VAZADOS</span>
+        </div>
+        <p>Controle grupos, campanhas, metas, cofre e financeiro com identidade visual e preferencias separadas por usuario.</p>
+      </div>
+
+      <div class="auth-highlights">
+        <div class="auth-highlight">
+          <span class="auth-highlight-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <div class="auth-highlight-copy">
+            <strong>Cofre protegido por conta</strong>
+            <span>Tema, idioma e cache visual ficam isolados por usuario.</span>
+          </div>
+        </div>
+        <div class="auth-highlight">
+          <span class="auth-highlight-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+          </span>
+          <div class="auth-highlight-copy">
+            <strong>Admin e usuarios comuns</strong>
+            <span>Crie acessos internos e distribua a experiencia do painel por equipe.</span>
+          </div>
+        </div>
+        <div class="auth-highlight">
+          <span class="auth-highlight-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </span>
+          <div class="auth-highlight-copy">
+            <strong>Campanhas, relatorios e metas</strong>
+            <span>Entre direto no Painel HOT com tudo pronto para operacao e apresentacao.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      {% if error %}
+      <div class="auth-message auth-message--error">{{ error }}</div>
+      {% endif %}
+      {% if success %}
+      <div class="auth-message auth-message--success">{{ success }}</div>
+      {% endif %}
+
+      <form class="auth-card is-active" method="post" action="/login">
+        <div>
+          <h2>Entrar no Painel HOT</h2>
+          <p>Use um usuario cadastrado para abrir o dashboard com suas preferencias salvas.</p>
+        </div>
+        <div class="auth-fields">
+          <label class="auth-field">
+            <span>Usuario</span>
+            <input type="text" name="username" value="{{ values.username or '' }}" placeholder="Seu usuario" autocomplete="username"/>
+          </label>
+          <label class="auth-field">
+            <span>Senha</span>
+            <input type="password" name="password" placeholder="Sua senha" autocomplete="current-password"/>
+          </label>
+        </div>
+        <div class="auth-actions">
+          <span class="auth-hint">Entrou uma vez, o painel passa a carregar com sua sessao ativa.</span>
+          <button class="auth-btn" type="submit">Acessar painel</button>
+        </div>
+      </form>
+
+    </section>
+  </main>
+</body>
+</html>

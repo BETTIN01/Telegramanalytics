@@ -1,0 +1,36 @@
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Local databases and sessions
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+database/*.session
+*.session
+
+# Local exports and generated files
+exports/
+*.log
+html_dump.txt
+
+# Sensitive/local-only files
+Login e senha.txt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

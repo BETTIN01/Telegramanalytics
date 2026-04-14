@@ -962,8 +962,26 @@ const UI_COPY = {
         rg: 'RG'
       },
       tableTitle: 'Registros retornados',
+      structuredTitle: 'Leitura estruturada da resposta',
       rawTitle: 'JSON completo retornado pela API',
+      rawSummary: 'Abrir JSON bruto completo',
+      recordRawSummary: 'Ver todos os campos deste registro',
       headers: ['#', 'Tipo', 'Dados completos'],
+      fields: {
+        name: 'Nome',
+        cpf: 'CPF',
+        birth: 'Nascimento',
+        sex: 'Sexo',
+        mother: 'Mae',
+        father: 'Pai',
+        rg: 'RG',
+        title: 'Titulo eleitor',
+        phones: 'Telefones',
+        emails: 'Emails',
+        address: 'Endereco',
+        contactsId: 'Contatos ID',
+        cadastroId: 'Cadastro ID'
+      },
       stats: {
         total: 'Resultados',
         records: 'Registros',
@@ -1489,8 +1507,26 @@ const UI_COPY = {
         rg: 'RG'
       },
       tableTitle: 'Returned records',
+      structuredTitle: 'Structured response view',
       rawTitle: 'Full raw JSON response',
+      rawSummary: 'Open full raw JSON',
+      recordRawSummary: 'Show every field from this record',
       headers: ['#', 'Type', 'Full data'],
+      fields: {
+        name: 'Name',
+        cpf: 'CPF',
+        birth: 'Birth',
+        sex: 'Sex',
+        mother: 'Mother',
+        father: 'Father',
+        rg: 'RG',
+        title: 'Voter ID',
+        phones: 'Phones',
+        emails: 'Emails',
+        address: 'Address',
+        contactsId: 'Contacts ID',
+        cadastroId: 'Registration ID'
+      },
       stats: {
         total: 'Results',
         records: 'Records',
@@ -3529,6 +3565,51 @@ function stringifyNameSearchPayload(payload) {
   }
 }
 
+function normalizeNameSearchValue(value) {
+  if (value === null || typeof value === 'undefined') return '-';
+  const text = String(value).trim();
+  if (!text || text.toUpperCase() === 'NULL') return '-';
+  return text;
+}
+
+function formatNameSearchPhone(item) {
+  if (item === null || typeof item === 'undefined') return '';
+  if (typeof item === 'string' || typeof item === 'number') return normalizeNameSearchValue(item);
+  if (typeof item !== 'object') return '';
+  const ddd = normalizeNameSearchValue(item.DDD || item.ddd || '');
+  const number = normalizeNameSearchValue(item.TELEFONE || item.telefone || item.NUMERO || item.numero || '');
+  if (ddd !== '-' && number !== '-') return `(${ddd}) ${number}`;
+  if (number !== '-') return number;
+  if (ddd !== '-') return ddd;
+  return '';
+}
+
+function formatNameSearchEmail(item) {
+  if (item === null || typeof item === 'undefined') return '';
+  if (typeof item === 'string' || typeof item === 'number') return normalizeNameSearchValue(item);
+  if (typeof item !== 'object') return '';
+  return normalizeNameSearchValue(item.EMAIL || item.email || item.MAIL || item.mail || '');
+}
+
+function formatNameSearchAddress(item) {
+  if (item === null || typeof item === 'undefined') return '';
+  if (typeof item === 'string' || typeof item === 'number') return normalizeNameSearchValue(item);
+  if (typeof item !== 'object') return '';
+  const type = normalizeNameSearchValue(item.LOGR_TIPO || item.logr_tipo || '');
+  const name = normalizeNameSearchValue(item.LOGR_NOME || item.logr_nome || item.ENDERECO || item.endereco || '');
+  const number = normalizeNameSearchValue(item.LOGR_NUMERO || item.logr_numero || item.NUMERO || item.numero || '');
+  const city = normalizeNameSearchValue(item.CIDADE || item.cidade || '');
+  const uf = normalizeNameSearchValue(item.UF || item.uf || '');
+  const cep = normalizeNameSearchValue(item.CEP || item.cep || '');
+  const baseParts = [type, name, number].filter(function(v) { return v !== '-'; });
+  const cityUf = city !== '-' && uf !== '-' ? `${city}/${uf}` : (city !== '-' ? city : (uf !== '-' ? uf : ''));
+  const parts = [];
+  if (baseParts.length) parts.push(baseParts.join(' '));
+  if (cityUf) parts.push(cityUf);
+  if (cep !== '-') parts.push(`CEP ${cep}`);
+  return parts.join(' - ') || '';
+}
+
 function getNameSearchPlaceholder(searchType) {
   const text = getUiText().nameSearch;
   if (text && text.placeholderByType && text.placeholderByType[searchType]) {
@@ -3553,6 +3634,66 @@ function renderNameSearchSummary(state) {
   if (el('name-search-total')) el('name-search-total').textContent = String(Number(current.total || list.length || 0));
   if (el('name-search-records')) el('name-search-records').textContent = String(list.length);
   if (el('name-search-json-size')) el('name-search-json-size').textContent = sizeLabel;
+}
+
+function createNameSearchRecordItem(label, value) {
+  const item = document.createElement('div');
+  item.className = 'name-search-record-item';
+
+  const itemLabel = document.createElement('div');
+  itemLabel.className = 'name-search-record-item-label';
+  itemLabel.textContent = label;
+  item.appendChild(itemLabel);
+
+  const itemValue = document.createElement('div');
+  itemValue.className = 'name-search-record-item-value';
+  itemValue.textContent = normalizeNameSearchValue(value);
+  item.appendChild(itemValue);
+
+  return item;
+}
+
+function buildNameSearchRecordNode(row) {
+  const text = getUiText().nameSearch;
+  const labels = text.fields || {};
+  const data = row && typeof row === 'object' && row.DADOS && typeof row.DADOS === 'object' ? row.DADOS : {};
+
+  const phones = Array.isArray(row && row.TELEFONE) ? row.TELEFONE.map(formatNameSearchPhone).filter(Boolean) : [];
+  const emails = Array.isArray(row && row.EMAIL) ? row.EMAIL.map(formatNameSearchEmail).filter(Boolean) : [];
+  const addresses = Array.isArray(row && row.ENDERECOS) ? row.ENDERECOS.map(formatNameSearchAddress).filter(Boolean) : [];
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'name-search-record';
+
+  const grid = document.createElement('div');
+  grid.className = 'name-search-record-grid';
+  grid.appendChild(createNameSearchRecordItem(labels.name || 'Nome', data.NOME || data.name || data.nome || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.cpf || 'CPF', data.CPF || data.cpf || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.birth || 'Nascimento', data.NASC || data.DT_NASC || data.birth_date || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.sex || 'Sexo', data.SEXO || data.sex || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.mother || 'Mae', data.NOME_MAE || data.mae || data.mother_name || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.father || 'Pai', data.NOME_PAI || data.pai || data.father_name || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.rg || 'RG', data.RG || data.rg || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.title || 'Titulo eleitor', data.TITULO_ELEITOR || data.titulo || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.contactsId || 'Contatos ID', data.CONTATOS_ID || data.contatos_id || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.cadastroId || 'Cadastro ID', data.CADASTRO_ID || data.cadastro_id || ''));
+  grid.appendChild(createNameSearchRecordItem(labels.phones || 'Telefones', phones.length ? phones.join(' | ') : '-'));
+  grid.appendChild(createNameSearchRecordItem(labels.emails || 'Emails', emails.length ? emails.join(' | ') : '-'));
+  grid.appendChild(createNameSearchRecordItem(labels.address || 'Endereco', addresses.length ? addresses.slice(0, 2).join(' | ') : '-'));
+  wrapper.appendChild(grid);
+
+  const details = document.createElement('details');
+  details.className = 'name-search-record-raw';
+  const summary = document.createElement('summary');
+  summary.textContent = text.recordRawSummary || 'Ver todos os campos deste registro';
+  details.appendChild(summary);
+  const pre = document.createElement('pre');
+  pre.className = 'name-search-json-snippet';
+  pre.textContent = stringifyNameSearchPayload(row);
+  details.appendChild(pre);
+  wrapper.appendChild(details);
+
+  return wrapper;
 }
 
 function renderNameSearchRows(state) {
@@ -3592,10 +3733,7 @@ function renderNameSearchRows(state) {
     }
 
     const dataTd = document.createElement('td');
-    const pre = document.createElement('pre');
-    pre.className = 'name-search-json-snippet';
-    pre.textContent = stringifyNameSearchPayload(row);
-    dataTd.appendChild(pre);
+    dataTd.appendChild(buildNameSearchRecordNode(row));
 
     tr.appendChild(idxTd);
     tr.appendChild(typeTd);
@@ -3604,13 +3742,70 @@ function renderNameSearchRows(state) {
   });
 }
 
+function renderNameSearchStructuredPayload(state) {
+  const text = getUiText().nameSearch;
+  const current = state || nameSearchState;
+  const container = el('name-search-structured');
+  if (!container) return;
+
+  if (current.raw === null || typeof current.raw === 'undefined') {
+    container.className = 'name-search-structured-empty';
+    container.textContent = text.rawIdle;
+    return;
+  }
+
+  const list = getNameSearchRows(current.raw, current.rows);
+  container.className = 'name-search-structured-grid';
+  container.innerHTML = '';
+
+  const summaryCard = document.createElement('div');
+  summaryCard.className = 'name-search-structured-card';
+  summaryCard.innerHTML = `
+    <div class="name-search-structured-title">${escHtml(text.structuredTitle || 'Leitura estruturada da resposta')}</div>
+    <div class="name-search-structured-meta">${escHtml(`Consulta: ${normalizeNameSearchValue(current.query)}`)}</div>
+    <div class="name-search-structured-meta">${escHtml(`Tipo: ${getNameSearchTypeLabel(current.searchType)}`)}</div>
+    <div class="name-search-structured-meta">${escHtml(`Registros em RESULTADOS: ${String(list.length)}`)}</div>
+    <div class="name-search-structured-meta">${escHtml(`Endpoint: ${normalizeNameSearchValue(current.endpoint)}`)}</div>
+    <div class="name-search-structured-meta">${escHtml(`Fonte: ${normalizeNameSearchValue(current.source)}`)}</div>
+  `;
+  container.appendChild(summaryCard);
+
+  if (current.raw && typeof current.raw === 'object' && !Array.isArray(current.raw)) {
+    const keysCard = document.createElement('div');
+    keysCard.className = 'name-search-structured-card';
+    const keys = Object.keys(current.raw);
+    keysCard.innerHTML = `
+      <div class="name-search-structured-title">Chaves no retorno</div>
+      <div class="name-search-structured-meta">${escHtml(keys.length ? keys.join(', ') : '-')}</div>
+    `;
+    container.appendChild(keysCard);
+  }
+
+  if (list.length) {
+    const sampleCard = document.createElement('div');
+    sampleCard.className = 'name-search-structured-card';
+    const sample = list[0];
+    const dados = sample && sample.DADOS && typeof sample.DADOS === 'object' ? sample.DADOS : {};
+    sampleCard.innerHTML = `
+      <div class="name-search-structured-title">Primeiro registro (leitura rapida)</div>
+      <div class="name-search-structured-meta">${escHtml(`Nome: ${normalizeNameSearchValue(dados.NOME || dados.nome || '-')}`)}</div>
+      <div class="name-search-structured-meta">${escHtml(`CPF: ${normalizeNameSearchValue(dados.CPF || dados.cpf || '-')}`)}</div>
+      <div class="name-search-structured-meta">${escHtml(`Nascimento: ${normalizeNameSearchValue(dados.NASC || '-')}`)}</div>
+      <div class="name-search-structured-meta">${escHtml(`Sexo: ${normalizeNameSearchValue(dados.SEXO || '-')}`)}</div>
+    `;
+    container.appendChild(sampleCard);
+  }
+}
+
 function renderNameSearchRawPayload(state) {
   const text = getUiText().nameSearch;
   const current = state || nameSearchState;
+  const details = el('name-search-json-details');
   const rawNode = el('name-search-json');
   if (!rawNode) return;
   if (current.raw === null || typeof current.raw === 'undefined') {
     rawNode.textContent = text.rawIdle;
+    if (details) details.open = false;
     return;
   }
   rawNode.textContent = stringifyNameSearchPayload(current.raw);
@@ -3623,6 +3818,7 @@ function loadNameSearch() {
   updateNameSearchTypeUI();
   renderNameSearchSummary(nameSearchState);
   renderNameSearchRows(nameSearchState);
+  renderNameSearchStructuredPayload(nameSearchState);
   renderNameSearchRawPayload(nameSearchState);
   if (!nameSearchState.query && el('name-search-msg')) {
     showMsg('name-search-msg', text.idle, true);
@@ -3660,6 +3856,7 @@ async function searchNames() {
       source: '',
       total: 0,
     });
+    renderNameSearchStructuredPayload({ raw: null });
     renderNameSearchRawPayload({ raw: null });
     return;
   }
@@ -3682,6 +3879,7 @@ async function searchNames() {
     };
     renderNameSearchSummary(nameSearchState);
     renderNameSearchRows(nameSearchState);
+    renderNameSearchStructuredPayload(nameSearchState);
     renderNameSearchRawPayload(nameSearchState);
     const foundText = typeof text.found === 'function'
       ? text.found(Number(nameSearchState.total || rows.length), query, typeLabel)
@@ -3699,6 +3897,7 @@ async function searchNames() {
     };
     renderNameSearchSummary(nameSearchState);
     renderNameSearchRows(nameSearchState);
+    renderNameSearchStructuredPayload(nameSearchState);
     renderNameSearchRawPayload(nameSearchState);
     showMsg('name-search-msg', (currentLang === 'en' ? 'Search error: ' : 'Erro na busca: ') + e.message, false);
   }
@@ -3721,6 +3920,7 @@ function clearNameSearch() {
   updateNameSearchTypeUI();
   renderNameSearchSummary(nameSearchState);
   renderNameSearchRows(nameSearchState);
+  renderNameSearchStructuredPayload(nameSearchState);
   renderNameSearchRawPayload(nameSearchState);
   showMsg('name-search-msg', text.idle, true);
 }
@@ -4896,7 +5096,9 @@ function localizeStaticSections() {
   setText('#name-search-records-label', text.nameSearch.stats.records);
   setText('#name-search-json-size-label', text.nameSearch.stats.jsonSize);
   setText('#name-search-table-title', text.nameSearch.tableTitle);
+  setText('#name-search-structured-title', text.nameSearch.structuredTitle);
   setText('#name-search-json-title', text.nameSearch.rawTitle);
+  setText('#name-search-json-summary', text.nameSearch.rawSummary);
   const nameSearchTypeSelect = el('name-search-type');
   if (nameSearchTypeSelect && text.nameSearch.searchTypes) {
     Array.from(nameSearchTypeSelect.options).forEach(function(option) {
@@ -4907,6 +5109,7 @@ function localizeStaticSections() {
   }
   if (!nameSearchState.query && (nameSearchState.raw === null || typeof nameSearchState.raw === 'undefined')) {
     setText('#name-search-json', text.nameSearch.rawIdle);
+    setText('#name-search-structured', text.nameSearch.rawIdle);
   }
   updateNameSearchTypeUI();
   setButtonLabel('#name-search-btn', text.nameSearch.buttons.search);
@@ -4914,6 +5117,9 @@ function localizeStaticSections() {
   document.querySelectorAll('#view-name-search thead th').forEach(function(th, idx) {
     if (typeof text.nameSearch.headers[idx] !== 'undefined') th.textContent = text.nameSearch.headers[idx];
   });
+  renderNameSearchRows(nameSearchState);
+  renderNameSearchStructuredPayload(nameSearchState);
+  renderNameSearchRawPayload(nameSearchState);
 
   const memberLabels = document.querySelectorAll('#view-members .stat-item .lbl');
   text.members.stats.forEach(function(label, idx) { setText(memberLabels[idx], label); });

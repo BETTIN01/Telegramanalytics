@@ -8280,6 +8280,54 @@ textarea:focus-visible {
   line-height: 1.45;
 }
 
+.name-search-record {
+  display: grid;
+  gap: 10px;
+}
+
+.name-search-record-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.name-search-record-item {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.02);
+}
+
+.name-search-record-item-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.name-search-record-item-value {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.name-search-record-raw {
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  background: rgba(8,10,18,.35);
+}
+
+.name-search-record-raw > summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .name-search-json-snippet,
 .name-search-json-full {
   margin: 0;
@@ -8299,6 +8347,48 @@ textarea:focus-visible {
   max-height: 560px;
   overflow: auto;
   color: var(--text);
+}
+
+.name-search-structured-empty {
+  padding: 16px 18px 18px;
+  color: var(--muted);
+}
+
+.name-search-structured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  padding: 14px 16px 18px;
+}
+
+.name-search-structured-card {
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.02);
+  padding: 12px;
+}
+
+.name-search-structured-title {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.name-search-structured-meta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.name-search-json-details > summary {
+  cursor: pointer;
+  padding: 10px 16px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
 .settings-hero {
